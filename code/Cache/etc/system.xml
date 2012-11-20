@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<config>
+    <tabs>
+        <made translate="label" module="core">
+            <label>Made People</label>
+            <sort_order>101</sort_order>
+        </made>
+    </tabs>
+    <sections>
+        <cache>
+            <label>Cache</label>
+            <tab>made</tab>
+            <frontend_type>text</frontend_type>
+            <sort_order>1000</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <groups>
+                <general translate="label">
+                    <label>General Settings</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>0</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <enable_profiler>
+                            <label>Enable Block Profiler</label>
+                            <comment>Displays hierarchical data of uncached block rendering times</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </enable_profiler>
+                        <remove_redirect_param>
+                            <label>Remove Redirect Parameter</label>
+                            <comment>Required if you display blocks with cached redirect links on more than one page, making redirects incorrect. This requires manual implementation which means you probably know what you're doing. Otherwise, disable.</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </remove_redirect_param>
+                    </fields>
+                </general>
+                <varnish translate="label">
+                    <label>Varnish Settings (Enabled in Cache Management)</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>1</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <ttl>
+                            <label>Default Varnish TTL</label>
+                            <comment><![CDATA[<a href="https://www.varnish-software.com/static/book/VCL_Basics.html#the-initial-value-of-beresp-ttl" target="_blank">Click here for an explanation of Varnish TTL values</a><br/>Default 1w]]></comment>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>1</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>                            
+                        </ttl>
+                        <nocache_routes>
+                            <label>Routes to exclude from cache</label>
+                            <comment>One per line: module, module/controller, or module/controller/action</comment>
+                            <frontend_type>textarea</frontend_type>
+                            <sort_order>2</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>                            
+                        </nocache_routes>
+                        <servers>
+                            <label>IPs to Varnish servers</label>
+                            <comment>One per line</comment>
+                            <frontend_type>textarea</frontend_type>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>                            
+                        </servers>
+                        <debug>
+                            <label>Debug Mode</label>
+                            <comment>Displays debug information as response headers</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>                            
+                        </debug>
+                    </fields>
+                </varnish>
+            </groups>
+        </cache>
+    </sections>
+</config>

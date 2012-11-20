@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Made_Cache>
+            <active>true</active>
+            <codePool>community</codePool>
+        </Made_Cache>
+    </modules>
+</config>
