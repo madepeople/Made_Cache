@@ -36,6 +36,20 @@ For instance, to cache the products.list block on every cms\_page for 7200 secon
 </layout>
 ```
 
+These tags exist:
+
+**cache** - Used to group which blocks should be cached
+
+**nocache** - Used to group which block should _not_ be cached
+
+**esi** (Varnish) - Generates an ESI tag in place of the block
+
+**noesi** (Varnish) - Excludes a block from the ESI tag generation
+
+**name** - Used inside the above to determine which blocks should be used
+
+
+
 See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
 
 Varnish & ESI
@@ -46,6 +60,9 @@ A custom magento.vcl file is available in the etc/ directory of the module. With
 * Set up your Varnish server's IP in System / Configuration / Made People / Cache
 * Enable "Varnish" in the Magento Cache Management page
 * Flush everything
+
+The layout handle _varnish\_enabled_ is added to every request when Varnish is in front.
+
 
 FAQ
 ==
