@@ -72,3 +72,7 @@ Hopefully not. Events are used instead of block rewrites, and no core functional
 Another Varnish implementation?
 --
 That's right. The nice thing with this implementation is automatic ESI tag generation and session invalidation. We try to cache as much as we can without messing with standard installations. It also supports caching ESI requests on a user-level, meaning the majority of the requests come directly from Varnish (super fast).
+
+License
+--
+This project is licensed under the 4-clause BSD License, see [LICENSE](https://github.com/madepeople/Made_Cache/blob/master/LICENSE)
