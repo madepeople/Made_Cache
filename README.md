@@ -39,16 +39,10 @@ For instance, to cache the products.list block on every cms\_page for 7200 secon
 These tags exist:
 
 **cache** - Used to group which blocks should be cached
-
 **nocache** - Used to group which block should _not_ be cached
-
 **esi** (Varnish) - Generates an ESI tag in place of the block
-
 **noesi** (Varnish) - Excludes a block from the ESI tag generation
-
 **name** - Used inside the above to determine which blocks should be used
-
-
 
 See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
 
