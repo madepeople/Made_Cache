@@ -18,7 +18,7 @@ ESI is supported in conjunction with Phoenix_VarnishCache, and allows for super-
 A good block cache is vital for scaling a site, be sure to implement it before residing to full page cache.</description>
    <license>OSL 3.0</license>
    <license_uri/>
-   <version>1.1.4</version>
+   <version>1.4.1</version>
    <stability>stable</stability>
    <notes>N/A</notes>
    <authors>
