@@ -1,10 +1,6 @@
 Magento Block Cache & Varnish extension
 ==
 
-ABC?
---
-Short for "Advanced Block Cache". We now have Varnish as well - an acronym makes sense.
-
 Why?
 --
 Few know that Magento out of the box actually doesn't cache any frontend blocks other than Navigation and Footer, which are basically static as they are. This module enhances performance by giving developers a simple interface for caching any block they want, and comes with good default settings.
