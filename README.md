@@ -12,10 +12,45 @@ Features
 * Unobtrusive & Future Proof
 * Simple Configuration
 
+Installation
+--
+Install this module using [modman](https://github.com/colinmollenhour/modman)
+
+`modman clone git@github.com:madepeople/Made_Cache.git`
+
+Or by downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html)
+
+Basic Configuration
+--
+Most of the configuration is done via layout XML. In general it comes down to choosing which blocks to cache (or not), and which ones to fetch via ESI (or not).
+
+For instance, to cache the products.list block on every cms\_page for 7200 seconds:
+
+```xml
+<layout version="0.1.0">
+    <cms_page>
+        <cache>
+            <name lifetime="7200">products.list</name>
+        </cache>
+    <cms_page>
+</layout>
+```
+
+See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
+
+Varnish & ESI
+--
+A custom magento.vcl file is available in the etc/ directory of the module. With Varnish in front and using this VCL, you can enable full page caching.
+
+* Use magento.vcl with your Varnish instance and modify its IP settings in the top
+* Set up your Varnish server's IP in System / Configuration / Made People / Cache
+* Enable "Varnish" in the Magento Cache Management page
+* Flush everything
+
 FAQ
 ==
 
-Will ABC interfere with other modules?
+Will Made\_Cache interfere with other modules?
 --
 Hopefully not. Events are used instead of block rewrites, and no core functionality is modified. This means that there will be less interference with other modules, and that manual block cache settings are preserved.
 
