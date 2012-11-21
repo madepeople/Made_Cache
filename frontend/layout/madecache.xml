@@ -30,7 +30,7 @@
         </cache>
 
         <!-- Inject profiler block into the bottom of the layout -->
-        <reference name="root">
+        <reference name="before_body_end">
             <!-- This block can't be used with varnish cache enabled -->
             <block type="cache/profiler" name="cache_profiler" output="toHtml" ifconfig="cache/general/enable_profiler"/>
         </reference>
@@ -72,7 +72,7 @@
         <remove name="right.reports.product.viewed"/>
         <remove name="left.reports.product.viewed"/>
         
-        <reference name="root">
+        <reference name="content">
             <block type="cache/varnish_footer" name="varnish_cache_footer" output="toHtml"/>
         </reference>
     </varnish_enabled>
