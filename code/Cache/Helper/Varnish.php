@@ -215,6 +215,11 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
             return null; 
         }
         
+        if ($this->_matchRoutesAgainstRequest('madecache/varnish/esi', $request)) {
+            // All ESI requests should have the same TTL as the session itself
+            return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime')) . 's';
+        }
+
         return Mage::getStoreConfig('cache/varnish/ttl');
     }
     
