@@ -141,7 +141,7 @@
             </modules>
         </translate>
         <events>
-            <controller_action_predispatch>
+            <controller_action_layout_load_before>
                 <observers>
                     <add_layout_handle>
                         <type>singleton</type>
@@ -149,7 +149,7 @@
                         <method>addLayoutHandle</method>
                     </add_layout_handle>
                 </observers>
-            </controller_action_predispatch>
+            </controller_action_layout_load_before>
             <controller_action_predispatch>
                 <observers>
                     <clear_cache_headers>

@@ -68,7 +68,7 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
         
-        $observer->getEvent()->getControllerAction()
+        $observer->getEvent()
                 ->getLayout()
                 ->getUpdate()
                 ->addHandle('varnish_enabled');

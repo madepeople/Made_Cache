@@ -72,8 +72,13 @@
         <remove name="right.reports.product.viewed"/>
         <remove name="left.reports.product.viewed"/>
         
+        <!--
+            The lazy session validation block must be added at the end to not
+            block the page rendering. People generally don't remove the 
+            "content" block
+        -->
         <reference name="content">
-            <block type="cache/varnish_footer" name="varnish_cache_footer" output="toHtml"/>
+            <block type="cache/varnish_footer" name="varnish_cache_footer" after="-"/>
         </reference>
     </varnish_enabled>
     
