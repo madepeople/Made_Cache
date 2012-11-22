@@ -16,9 +16,9 @@ There is also support for disabling cache for specific handles such as checkout,
 ESI is supported in conjunction with Phoenix_VarnishCache, and allows for super-fast page views. Check out layout/madecache.xml for examples.
 
 A good block cache is vital for scaling a site, be sure to implement it before residing to full page cache.</description>
-   <license>OSL 3.0</license>
+   <license>4-clause BSD License</license>
    <license_uri/>
-   <version>1.4.1</version>
+   <version>1.4.2</version>
    <stability>stable</stability>
    <notes>N/A</notes>
    <authors>
