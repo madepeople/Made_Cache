@@ -88,10 +88,20 @@ class Made_Cache_Model_Observer
         $invalidatedTypes = Mage::app()->getCacheInstance()
                 ->getInvalidatedTypes();
         
-        if (is_array($invalidatedTypes) &&
-                isset($invalidatedTypes[Mage_Core_Block_Abstract::CACHE_GROUP])) {
-            Mage::app()->getCacheInstance()
-                    ->cleanType(Mage_Core_Block_Abstract::CACHE_GROUP);
+        if (!is_array($invalidatedTypes)) {
+            return;
+        }
+        
+        $typesToCheck = array(
+            Mage_Core_Block_Abstract::CACHE_GROUP,
+            'full_page'
+        );
+        
+        foreach ($typesToCheck as $type) {
+            if (isset($invalidatedTypes[Mage_Core_Block_Abstract::CACHE_GROUP])) {
+                Mage::app()->getCacheInstance()
+                        ->cleanType($type);
+            }
         }
     }
 

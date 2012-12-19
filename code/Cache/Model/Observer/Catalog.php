@@ -105,8 +105,25 @@ class Made_Cache_Model_Observer_Catalog
             $this->_getCategoryIdForProductList($block);
         
         // The toolbar needs to apply sort order etc
-        $productCollection = $block->getLoadedProductCollection();
         $_toolbar = $block->getToolbarBlock();
+        $productCollection = $block->getLoadedProductCollection();
+        
+        /**
+         * @see Mage_Catalog_Block_Product_List_Toolbar::getCurrentOrder
+         */
+        if ($orders = $block->getAvailableOrders()) {
+            $_toolbar->setAvailableOrders($orders);
+        }
+        if ($sort = $block->getSortBy()) {
+            $_toolbar->setDefaultOrder($sort);
+        }
+        if ($dir = $block->getDefaultDirection()) {
+            $_toolbar->setDefaultDirection($dir);
+        }
+        if ($modes = $block->getModes()) {
+            $_toolbar->setModes($modes);
+        }
+        
         $_toolbar->setCollection($productCollection);
         
         foreach ($productCollection as $_product) {
