@@ -66,6 +66,22 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     }
     
     /**
+     * Bans an URL or more from the Varnish cache
+     * 
+     * @param string|array $urls
+     */
+    public function ban($urls)
+    {
+        $urls = (array)$urls;
+        $status = array();
+        foreach ($urls as $url) {
+            $header = 'X-Ban-String: req.url ~ ' . $url;
+            $status = array_merge($this->_callVarnish('/', 'BAN', array($header)));
+        }
+        return $status;
+    }
+
+    /**
      * Purge specific object in varnish cache
      * 
      * @param string|array $urls 

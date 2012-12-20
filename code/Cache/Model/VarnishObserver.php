@@ -195,7 +195,7 @@ class Made_Cache_Model_VarnishObserver
         
         if (!empty($relativeUrls)) {
             $relativeUrls = array_unique($relativeUrls);
-            $errors = Mage::helper('cache/varnish')->purge($relativeUrls);
+            $errors = Mage::helper('cache/varnish')->ban($relativeUrls);
             
             // Varnish purge messages should only appear in the backend
             if (Mage::app()->getStore()->isAdmin()) {
