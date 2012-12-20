@@ -71,8 +71,10 @@ class Made_Cache_Model_Observer
     public function reviewSaveAfter(Varien_Event_Observer $observer)
     {
         $_object = $observer->getObject();
-        $_productCollection = $_object->getProductCollection();
-        
+        $_productCollection = $_object->getProductCollection()
+                ->addAttributeToFilter('rt.review_id',
+                        array('eq' => $_object->getId()));
+
         foreach ($_productCollection as $_product) {
             $_product->cleanCache();
         }
