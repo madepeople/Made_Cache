@@ -48,15 +48,6 @@
             </core>
         </blocks>
         <events>
-            <adminhtml_cache_flush_all>
-                <observers>
-                    <varnish_purge>
-                        <type>singleton</type>
-                        <class>cache/varnishObserver</class>
-                        <method>purge</method>
-                    </varnish_purge>
-                </observers>
-            </adminhtml_cache_flush_all>
             <application_clean_cache>
                 <observers>
                     <varnish_purge>
@@ -93,24 +84,6 @@
                     </quote_save_after>
                 </observers>
             </sales_quote_save_after>
-            <review_save_after>
-                <observers>
-                    <cache_review_save_after>
-                        <type>singleton</type>
-                        <class>cache/observer</class>
-                        <method>reviewSaveAfter</method>
-                    </cache_review_save_after>
-                </observers>
-            </review_save_after>
-            <controller_action_postdispatch_adminhtml_catalog_product_save>
-                <observers>
-                    <clean_cache_after_product_save>
-                        <type>singleton</type>
-                        <class>cache/observer</class>
-                        <method>cleanCacheAfterProductSave</method>
-                    </clean_cache_after_product_save>
-                </observers>
-            </controller_action_postdispatch_adminhtml_catalog_product_save>
         </events>
     </global>
     <frontend>
@@ -199,6 +172,35 @@
         </events>
     </frontend>
     <adminhtml>
+        <events>
+            <controller_action_postdispatch_adminhtml_catalog_product_save>
+                <observers>
+                    <clean_cache_after_product_save>
+                        <type>singleton</type>
+                        <class>cache/observer</class>
+                        <method>cleanCacheAfterProductSave</method>
+                    </clean_cache_after_product_save>
+                </observers>
+            </controller_action_postdispatch_adminhtml_catalog_product_save>
+            <adminhtml_cache_flush_all>
+                <observers>
+                    <varnish_purge>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purge</method>
+                    </varnish_purge>
+                </observers>
+            </adminhtml_cache_flush_all>
+            <review_save_after>
+                <observers>
+                    <cache_review_save_after>
+                        <type>singleton</type>
+                        <class>cache/observer</class>
+                        <method>reviewSaveAfter</method>
+                    </cache_review_save_after>
+                </observers>
+            </review_save_after>
+        </events>
         <acl>
             <resources>
                 <admin>

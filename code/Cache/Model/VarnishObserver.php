@@ -196,12 +196,16 @@ class Made_Cache_Model_VarnishObserver
         if (!empty($relativeUrls)) {
             $relativeUrls = array_unique($relativeUrls);
             $errors = Mage::helper('cache/varnish')->purge($relativeUrls);
-            if (!empty($errors)) {
-                Mage::getSingleton('adminhtml/session')->addError(
-                    "Some Varnish purges failed: <br/>" . implode("<br/>", $errors));
-            } else {
-                Mage::getSingleton('adminhtml/session')->addSuccess(
-                    "The following URLs have been cleared from Varnish: <br/>&nbsp;&nbsp;" . implode(", ", $relativeUrls));
+            
+            // Varnish purge messages should only appear in the backend
+            if (Mage::app()->getStore()->isAdmin()) {
+                if (!empty($errors)) {
+                    Mage::getSingleton('adminhtml/session')->addError(
+                        "Some Varnish purges failed: <br/>" . implode("<br/>", $errors));
+                } else {
+                    Mage::getSingleton('adminhtml/session')->addSuccess(
+                        "The following URLs have been cleared from Varnish: <br/>&nbsp;&nbsp;" . implode(", ", $relativeUrls));
+                }
             }
         }
 
