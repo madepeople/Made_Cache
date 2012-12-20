@@ -76,7 +76,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
         $status = array();
         foreach ($urls as $url) {
             $header = 'X-Ban-String: req.url ~ ' . $url;
-            $status = array_merge($this->_callVarnish('/', 'BAN', array($header)));
+            $status = array_merge($this->_callVarnish('/', 'BAN', array($header)), $status);
         }
         return $status;
     }
