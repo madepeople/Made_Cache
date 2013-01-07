@@ -84,5 +84,8 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
      */
     public function cookieAction()
     {
+        // IE needs this, otherwise it won't accept cookies from an AJAX request
+        $this->getResponse()
+                ->setHeader('P3P', 'CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"', true);
     }
 }
