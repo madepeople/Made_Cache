@@ -40,7 +40,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
      */
     public function getServers()
     {
-        $serversConfig = explode('\n', Mage::getStoreConfig('cache/varnish/servers'));
+        $serversConfig = preg_split('/[\r\n]+/', Mage::getStoreConfig('cache/varnish/servers'), null, PREG_SPLIT_NO_EMPTY);
         $servers = array();
         
         foreach ($serversConfig as $server) {
