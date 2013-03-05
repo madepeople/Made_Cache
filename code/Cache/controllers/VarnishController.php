@@ -31,7 +31,7 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
         
         $layout->generateXml();
         $blockNodes = $layout->getNode()
-                ->xpath('//*[@name="'.$blockName.'"]');
+                ->xpath('//block[@name="'.$blockName.'"]');
         
         if (!empty($blockNodes)) {
             foreach ($blockNodes as $node) {
