@@ -42,6 +42,6 @@ class Made_Cache_Model_Observer_Checkout
         $keys = $this->_getBasicKeys($block);
         $keys[] = $this->_getQuoteId($block);
         
-        $block->setData('cache_key', $this->_getCacheKey($keys));
+        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
     }
 }

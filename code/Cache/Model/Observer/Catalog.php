@@ -52,7 +52,7 @@ class Made_Cache_Model_Observer_Catalog
                             ->setProductClassId($_product->getTaxClassId())
             )
         ));
-        $block->setData('cache_key', $this->_getCacheKey($keys));
+        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
     }
     
     /**
@@ -157,6 +157,6 @@ class Made_Cache_Model_Observer_Catalog
             $_taxRateRequest->getCustomerClassId(),
             Mage::registry('current_tag')
         ));
-        $block->setData('cache_key', $this->_getCacheKey($keys));
+        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
     }
 }

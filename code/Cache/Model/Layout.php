@@ -48,7 +48,11 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
                 if (empty($lifetime)) {
                     $lifetime = self::DEFAULT_CACHE_LIFETIME;
                 }
-                $this->_cacheBlocks[(string)$node] = $lifetime;
+                $key = (string)$node->getAttribute('key');
+                $this->_cacheBlocks[(string)$node] = array(
+                    'lifetime' => $lifetime,
+                    'key' => $key
+                );
             }
         }
         
@@ -106,42 +110,6 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
 
         return parent::generateBlocks($parent);
     }
-    
-    /**
-     * Generate cache key for block to be cached via layout XML
-     * 
-     * @param Varien_Simplexml_Element $node
-     * @return string 
-     */
-    protected function _getCacheKey($node)
-    {
-        if (!empty($node['cache_key'])) {
-            $cacheKey = (string)$node['cache_tags'];
-        } else {
-            $paramKeys = array();
-            foreach (Mage::app()->getRequest()->getParams() as $key => $value) {
-//                if (is_array($value)) {
-//                    $value = implode('_', $value);
-//                } elseif (is_object($value)) {
-//                    $newValue = '';
-//                    foreach ($value->getData() as $dataKey => $dataValue) {
-//                        $newValue = $dataKey . $dataValue;
-//                    }
-//                    $value = $newValue;
-//                }
-                
-                $value = Mage::helper('cache')->paramValueToCacheKey($value);
-                $paramKeys[] = $key . $value;
-            }
-        
-            $_customer = Mage::getSingleton('customer/session')->getCustomer();
-            $cacheKey = (string)$node['name'] .
-                $this->getUpdate()->getCacheId() .
-                md5($_customer->getGroupId() .
-                        join('_', $paramKeys));
-        }
-        return $cacheKey;
-    }
 
     /**
      * Add block object to layout based on XML node data
@@ -161,8 +129,11 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
         }
         
         if (in_array($blockName, array_keys($this->_cacheBlocks))) {
-            $block->setData('cache_lifetime', $this->_cacheBlocks[$blockName]);
-            $block->setData('cache_key', $this->_getCacheKey($node));
+            $block->setData('cache_lifetime', $this->_cacheBlocks[$blockName]['lifetime']);
+            
+            if (!empty($this->_cacheBlocks[$blockName]['key'])) {
+                $block->setData('cache_key', $this->_cacheBlocks[$blockName]['key']);
+            }
         }
         
         if (in_array($blockName, array_keys($this->_esiBlocks))) {

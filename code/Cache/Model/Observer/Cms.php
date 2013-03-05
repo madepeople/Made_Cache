@@ -30,10 +30,9 @@ class Made_Cache_Model_Observer_Cms
         
         // Set cache keys
         $keys = $this->_getBasicKeys($block);
-
         $keys[] = $block->getPage()->getId();
         $keys[] = $block->getLayout()->getUpdate()->getCacheId();
-        $block->setData('cache_key', $this->_getCacheKey($keys));
+        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
     }
     
     /**
@@ -84,6 +83,6 @@ class Made_Cache_Model_Observer_Cms
                 $keys[] = $block->getLayout()->getUpdate()->getCacheId();
             }
         }
-        $block->setData('cache_key', $this->_getCacheKey($keys));
+        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
     }
 }
