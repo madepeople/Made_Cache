@@ -29,9 +29,9 @@ abstract class Made_Cache_Model_Observer_Abstract
 
     /**
      * Get generic key array including handle etc, that all blocks use
-     * 
+     *
      * @param Mage_Core_Block_Abstract $block
-     * @return array 
+     * @return array
      */
     protected function _getBasicKeys(Mage_Core_Block_Abstract $block)
     {
@@ -39,14 +39,15 @@ abstract class Made_Cache_Model_Observer_Abstract
         if (!is_array($keys)) {
             $keys = array();
         }
-        
+
         $keys[] = Mage::getSingleton('customer/session')->getCustomer()
                 ->getGroupId();
-        
+
+        $keys[] = Mage::app()->getStore()->getCurrentCurrencyCode();
         $keys[] = $block->getLayout()->getUpdate()->getCacheId();
         $keys[] = 'SSL_' . intval(!empty($_SERVER['HTTPS']) &&
                 $_SERVER['HTTPS'] !== 'off') . '_';
-        
+
         return $keys;
     }
 }
