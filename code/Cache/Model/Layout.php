@@ -104,9 +104,6 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
         if ($parentIsMain !== false && $parent && $parent->getName() === 'block') {
             $this->_generateBlock($parent, new Varien_Object);
         }
-        if (empty($parent)) {
-            $parent = $this->getNode();
-        }
 
         return parent::generateBlocks($parent);
     }
