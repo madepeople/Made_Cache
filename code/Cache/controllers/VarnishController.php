@@ -2,7 +2,7 @@
 /**
  * Custom action for use together with Phoenix_VarnishCache to allow
  * ESI block caching
- * 
+ *
  * @package Made_Cache
  * @author info@madepeople.se
  * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
@@ -17,22 +17,22 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
         $layoutHandles = explode(',', base64_decode($this->getRequest()->getParam('layout')));
         $blockName = base64_decode($this->getRequest()->getParam('block'));
         $misc = unserialize(base64_decode($this->getRequest()->getParam('misc')));
-        
+
         if (is_array($misc)) {
             if (isset($misc['product'])) {
                 $product = Mage::getModel('catalog/product')->load($misc['product']);
                 Mage::register('product', $product);
             }
         }
-        
+
         $layout = $this->getLayout();
         $update = $layout->getUpdate();
         $update->load($layoutHandles);
-        
+
         $layout->generateXml();
         $blockNodes = $layout->getNode()
-                ->xpath('//block[@name="'.$blockName.'"]');
-        
+                ->xpath('//*[@name="'.$blockName.'"]');
+
         if (!empty($blockNodes)) {
             foreach ($blockNodes as $node) {
                 $layout->generateBlocks($node, true);
@@ -42,10 +42,10 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
             $this->getResponse()->setBody($block->toHtml());
         }
     }
-    
+
     /**
      * Render all messages from currently used session namespaces
-     * 
+     *
      * @return void
      */
     public function messagesAction()
@@ -53,13 +53,13 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
         if (empty($_SESSION)) {
             return;
         }
-        
+
         $messagesBlock = $this->getLayout()
                 ->createBlock('core/messages', 'messages')
                 ->setBypassVarnish(true);
-        
+
         foreach ($_SESSION as $contents) {
-            if (isset($contents['messages']) && 
+            if (isset($contents['messages']) &&
                     $contents['messages'] instanceof Mage_Core_Model_Message_Collection) {
                 if (!$contents['messages']->count()) {
                     continue;
@@ -68,19 +68,19 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
                 $contents['messages']->clear();
             }
         }
-        
+
         if (!$messagesBlock->getMessageCollection()->count()) {
             return;
         }
-        
+
         $this->getResponse()
                 ->setBody($messagesBlock->toHtml());
     }
-    
+
     /**
      * Simply make sure that the session is valid
-     * 
-     * @see Made_Cache_Block_Footer 
+     *
+     * @see Made_Cache_Block_Footer
      */
     public function cookieAction()
     {
