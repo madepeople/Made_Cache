@@ -77,13 +77,22 @@
             </core_block_abstract_to_html_before>
             <sales_quote_save_after>
                 <observers>
-                    <quote_save_after>
+                    <cache_quote_save_after>
                         <type>singleton</type>
                         <class>cache/observer</class>
                         <method>clearQuoteCache</method>
-                    </quote_save_after>
+                    </cache_quote_save_after>
                 </observers>
             </sales_quote_save_after>
+            <sales_order_place_after>
+                <observers>
+                    <cache_order_place_after>
+                        <type>singleton</type>
+                        <class>cache/observer</class>
+                        <method>clearProductCacheAfterOrderPlace</method>
+                    </cache_order_place_after>
+                </observers>
+            </sales_order_place_after>
         </events>
     </global>
     <frontend>
