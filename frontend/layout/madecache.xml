@@ -15,7 +15,6 @@
             -->
             <name lifetime="86400">left</name>
             <name>cms_page</name>
-            <name>head</name>
             <name>breadcrumbs</name>
             <name>before_body_end</name>
             <name>product.info</name>
