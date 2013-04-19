@@ -39,6 +39,10 @@ class Made_Cache_Model_Observer
                 Mage::getSingleton('cache/observer_catalog')
                     ->applyCategoryView($block);
                 break;
+            case $block instanceof Mage_Catalog_Block_Layer_View:
+                Mage::getSingleton('cache/observer_catalog')
+                    ->applyCatalogLayerView($block);
+                break;
             case $block instanceof Mage_Catalog_Block_Product_List:
                 Mage::getSingleton('cache/observer_catalog')
                     ->applyProductList($block);

@@ -10,16 +10,15 @@
     <default>
         <cache>
             <!--
-                Render "left" with a custom lifetime, the default is 
+                Render "cms_page" with a custom lifetime, the default is
                 9999999999 seconds
             -->
-            <name lifetime="86400">left</name>
-            <name>cms_page</name>
+            <name lifetime="86400">cms_page</name>
             <name>breadcrumbs</name>
             <name>before_body_end</name>
             <name>product.info</name>
             <name>product_list</name>
-            
+
             <!--
                 Cache the cart sidebar with a 7200 second lifetime. Also
                 force the cache key to be "cart_sidebar", since the cart
@@ -27,7 +26,7 @@
                 etc. If this isn't true in your case, remove it!
             -->
             <name lifetime="7200" key="cart_sidebar">cart_sidebar</name>
-            
+
             <!--
                 People want to cache this one, but it works badly if you use
                 the toolbar block to switch listing types
@@ -41,12 +40,12 @@
             <block type="cache/profiler" name="cache_profiler" output="toHtml" ifconfig="cache/general/enable_profiler"/>
         </reference>
     </default>
-    
+
     <varnish_enabled>
         <!--
             Example of blocks that typically should render using ESI, this
             is only used if Varnish is actually in front of Magento.
-            
+
             It's best to keep these blocks at a minimum, and if possible,
             bundled together as single big blocks. At the moment there is
             no good way to serve the product view cached while recording
@@ -63,13 +62,13 @@
 
         <!--
             Messages are fetched using ESI outside of the normal layout.
-            
+
             Stupid? Unsure. We must take care of all messages at every stage,
             keeping the standard distributed way of rendering messages fails
             here. The block is replaced under the hood with a special ESI tag.
-            
+
             Keep global_messages as a combined renderer
-            
+
             @see Made_Cache_Block_Messages
         -->
         <remove name="messages"/>
@@ -77,24 +76,24 @@
         <!-- There is no good way to manage the recently viewed block -->
         <remove name="right.reports.product.viewed"/>
         <remove name="left.reports.product.viewed"/>
-        
+
         <!--
             The lazy session validation block must be added at the end to not
-            block the page rendering. People generally don't remove the 
+            block the page rendering. People generally don't remove the
             "content" block
         -->
         <reference name="content">
             <block type="cache/varnish_footer" name="varnish_cache_footer" after="-"/>
         </reference>
     </varnish_enabled>
-    
+
     <checkout_onepage_index>
         <nocache>
             <name>root</name>
             <name>content</name>
         </nocache>
     </checkout_onepage_index>
-    
+
     <!-- For use with Made_Streamcheckout, http://streamcheckout.com -->
     <streamcheckout_index_index>
         <nocache>

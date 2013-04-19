@@ -1,6 +1,5 @@
 <_>
    <form_key>jBO1VMaZgu76v5ml</form_key>
-   <_create/>
    <name>Made_Cache</name>
    <channel>community</channel>
    <version_ids>
@@ -50,7 +49,7 @@ A good block cache is vital for scaling a site, be sure to implement it before r
             <max/>
          </max>
          <files>
-            <files>                                                                               </files>
+            <files>                                                                                </files>
          </files>
       </package>
       <extension>
