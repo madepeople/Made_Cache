@@ -142,6 +142,36 @@ class Made_Cache_Model_VarnishObserver
     }
     
     /**
+     * Flush everything currently in the Varnish cache
+     * 
+     * @param Varien_Event_Observer $observer
+     */
+    public function flush(Varien_Event_Observer $observer)
+    {
+        if (!Mage::helper('cache/varnish')->shouldUse()) {
+            return;
+        }
+        
+        $eventName = $observer->getEvent()->getName();
+        if ($eventName === 'adminhtml_cache_refresh_type') {
+            $flush = $observer->getEvent()->getType() === 'varnish';
+        } else {
+            $tags = $observer->getEvent()->getTags();
+            $flush = empty($tags);
+        }
+
+        if ($flush) {
+            $errors = Mage::helper('cache/varnish')->flush();
+            if (!empty($errors)) {
+                Mage::getSingleton('adminhtml/session')->addError("Varnish Purge failed: " . join(', ', $errors));
+            } else {
+                Mage::getSingleton('adminhtml/session')->addSuccess("The Varnish cache storage has been flushed.");
+            }
+            return;
+        }
+    }
+    
+    /**
      * Purge cache in Varnish including entity cache such as products,
      * categories and CMS pages by doing lookups in the rewrite table
      * 
@@ -155,18 +185,8 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-
-        $tags = $observer->getTags();
-        if (empty($tags)) {
-            $errors = Mage::helper('cache/varnish')->flush();
-            if (!empty($errors)) {
-                Mage::getSingleton('adminhtml/session')->addError("Varnish Purge failed");
-            } else {
-                Mage::getSingleton('adminhtml/session')->addSuccess("The Varnish cache storage has been flushed.");
-            }
-            return;
-        }
         
+        $tags = $observer->getEvent()->getTags();
         $urls = array();
         
         // Compute the urls for affected entities 

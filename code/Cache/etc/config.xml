@@ -191,15 +191,33 @@
                     </clean_cache_after_product_save>
                 </observers>
             </controller_action_postdispatch_adminhtml_catalog_product_save>
+            <adminhtml_cache_flush_system>
+                <observers>
+                    <varnish_purge>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>flush</method>
+                    </varnish_purge>
+                </observers>
+            </adminhtml_cache_flush_system>
             <adminhtml_cache_flush_all>
                 <observers>
                     <varnish_purge>
                         <type>singleton</type>
                         <class>cache/varnishObserver</class>
-                        <method>purge</method>
+                        <method>flush</method>
                     </varnish_purge>
                 </observers>
             </adminhtml_cache_flush_all>
+            <adminhtml_cache_refresh_type>
+                <observers>
+                    <varnish_purge>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>flush</method>
+                    </varnish_purge>
+                </observers>
+            </adminhtml_cache_refresh_type>
             <review_save_after>
                 <observers>
                     <cache_review_save_after>
