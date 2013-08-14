@@ -76,4 +76,14 @@ class Made_Cache_Block_Catalog_Product_List_Product
         $url = preg_replace('#/uenc/[^/]+/#', '/', $url);
         return $url;
     }
+
+    /**
+     * We don't need the extra collection/toolbar overhead created by default
+     *
+     * @return \Made_Cache_Block_Catalog_Product_List_Product
+     */
+    protected function _beforeToHtml()
+    {
+        return $this;
+    }
 }
