@@ -10,7 +10,6 @@
         <cache>
             <label>Cache</label>
             <tab>made</tab>
-            <frontend_type>text</frontend_type>
             <sort_order>1000</sort_order>
             <show_in_default>1</show_in_default>
             <show_in_website>1</show_in_website>
@@ -18,7 +17,6 @@
             <groups>
                 <general translate="label">
                     <label>General Settings</label>
-                    <frontend_type>text</frontend_type>
                     <sort_order>0</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
@@ -48,7 +46,6 @@
                 </general>
                 <varnish translate="label">
                     <label>Varnish Settings (Enabled in Cache Management)</label>
-                    <frontend_type>text</frontend_type>
                     <sort_order>1</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
@@ -61,7 +58,7 @@
                             <sort_order>1</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>                            
+                            <show_in_store>1</show_in_store>
                         </ttl>
                         <nocache_routes>
                             <label>Routes to exclude from cache</label>
@@ -70,7 +67,7 @@
                             <sort_order>2</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>                            
+                            <show_in_store>1</show_in_store>
                         </nocache_routes>
                         <servers>
                             <label>IPs to Varnish servers</label>
@@ -79,7 +76,7 @@
                             <sort_order>3</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>                            
+                            <show_in_store>1</show_in_store>
                         </servers>
                         <debug>
                             <label>Debug Mode</label>
@@ -89,7 +86,7 @@
                             <sort_order>3</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>                            
+                            <show_in_store>1</show_in_store>
                         </debug>
                     </fields>
                 </varnish>
