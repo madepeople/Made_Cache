@@ -74,39 +74,32 @@ class Made_Cache_Model_Observer
      */
     public function reviewSaveAfter(Varien_Event_Observer $observer)
     {
-        $_object = $observer->getObject();
-        $_productCollection = $_object->getProductCollection()
+        $object = $observer->getObject();
+        $productCollection = $object->getProductCollection()
                 ->addAttributeToFilter('rt.review_id',
-                        array('eq' => $_object->getId()));
+                        array('eq' => $object->getId()));
 
-        foreach ($_productCollection as $_product) {
-            $_product->cleanCache();
+        foreach ($productCollection as $product) {
+            $product->cleanCache();
         }
     }
 
     /**
-     * CatalogRule invalidates cache on product save, so this must be cleaned
+     * CatalogRule invalidates cache on product save, and we really don't
+     * want to clear everything which some blogposts suggest, so instead we
+     * just mark the block cache as valid again. Stupid? You decide
      *
      * @param Varien_Event_Observer $observer
      */
     public function cleanCacheAfterProductSave(Varien_Event_Observer $observer)
     {
-        $invalidatedTypes = Mage::app()->getCacheInstance()
-                ->getInvalidatedTypes();
-
-        if (!is_array($invalidatedTypes)) {
-            return;
-        }
-
-        $typesToCheck = array(
-            Mage_Core_Block_Abstract::CACHE_GROUP,
-            'full_page'
-        );
-
-        foreach ($typesToCheck as $type) {
-            if (isset($invalidatedTypes[Mage_Core_Block_Abstract::CACHE_GROUP])) {
-                Mage::app()->getCacheInstance()
-                        ->cleanType($type);
+        $cacheInstance = Mage::app()->getCacheInstance();
+        $types = $cacheInstance->load(Mage_Core_Model_Cache::INVALIDATED_TYPES);
+        if ($types) {
+            $types = unserialize($types);
+            if (!empty($types[Mage_Core_Block_Abstract::CACHE_GROUP])) {
+                unset($types[Mage_Core_Block_Abstract::CACHE_GROUP]);
+                $cacheInstance->save(serialize($types), Mage_Core_Model_Cache::INVALIDATED_TYPES);
             }
         }
     }
