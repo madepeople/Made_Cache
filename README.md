@@ -20,7 +20,7 @@ Install this module using [modman](https://github.com/colinmollenhour/modman)
 
 Or by downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html)
 
-Basic Configuration
+Magento Configuration
 --
 Most of the configuration is done via layout XML. In general it comes down to choosing which blocks to cache (or not), and which ones to fetch via ESI (or not).
 
@@ -50,17 +50,75 @@ These tags exist:
 
 See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
 
-Varnish & ESI
+Varnish, ESI & Sessions
+==
+A custom magento.vcl file is available in the etc/ directory of the module. With Varnish in front and using this VCL, you can harness full page caching.
+
+ESI
 --
-A custom magento.vcl file is available in the etc/ directory of the module. With Varnish in front and using this VCL, you can enable full page caching.
+In order to handle dynamic user-dependent blocks, something called ESI (Edge Side Includes) is used. With this in place, Varnish makes an extra request to the backend for each dynamic block, such as the cart, compared items, etc.
+
+General Configuration
+--
 
 * Use magento.vcl with your Varnish instance and modify its IP settings in the top
+* For ESI to work properly, it's a good idea to add `-p esi_syntax=0x1` to the Varnish command line
 * Set up your Varnish server's IP in System / Configuration / Made People / Cache
 * Enable "Varnish" in the Magento Cache Management page
 * Flush everything
 
 The layout handle _varnish\_enabled_ is added to every request when Varnish is in front.
 
+Sessions
+--
+Because Varnish sits in front of Magento itself, we need to have a way to validate sessions, otherwise Varnish has to pass every request to the backend as soon as a session is in place. Out of the box, this module adds a special cookie AJAX request to the bottom of the page which will send a new session if the visitor doesn't have one. This approach means that there will *always* be a request to the backend. The effect is that the user gets the idea of a super-fast loading page, but your backend still gets hit and might not be able to handle the thousands of requests you want it to.
+
+It is technically possible for Varnish to check the actual session storage directly in the actual VCL, but this methodThere are different sessions storage mechanisms available for Magento. Each with their own drawbacks:
+
+* **Files** - Hard to distribute on a network, and has locking issues
+* **Memcache** - Fast, but no persistence and no locking
+* **Redis** - Fast, has persistence, but not built-in locking
+* **MySQL** - Has persistence and locking, but performance is subject to all query noise that Magento creates
+
+Apart from these drawbacks, making Varnish to talk to the different storages isn't very straight forward.
+
+Given the above, I have experimented with using [CouchDB for sessions](https://github.com/madepeople/Made_CouchdbSession):
+
+* MVCC instead of locking gives performance and consistency
+* Queried via a HTTP interface that Varnish can talk to easily using libvmod-curl
+* A JavaScript _show_ function can be used to determine session validity inside of CouchDB itself, and return a boolean to Varnish. If the boolean is "true", we know it's safe to serve the visitor content from cache.
+
+Varnish & CouchDB Configuration
+--
+First, install and configure [Made_CouchdbSession](https://github.com/madepeople/Made_CouchdbSession) and make sure it's working. After this, Varnish needs [libvmod-curl](https://github.com/varnish/libvmod-curl) installed. For reference, here are Debian instructions:
+
+
+```bash
+apt-get update
+apt-get install build-essential dpkg-dev libcurl3-dev
+
+mkdir -p varnish/out
+cd varnish
+apt-get -b source varnish
+
+git clone git@github.com:varnish/libvmod-curl.git
+cd libvmod-curl
+./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
+make
+make install
+```
+
+The next step involves creating a show function inside of CouchDB that  can be used for determining if a session is valid or not.
+
+```bash
+curl -o- https://gist.github.com/jonathanselander/1c71f413911116ecba11/raw/9cf20bbe0803ad06731fe35d1769ed5aa155afd2/gistfile1.txt | curl -X PUT -d @- http://127.0.0.1:5984/magento_session/_design/misc
+```
+
+Modify the command to reflect your CouchDB host:port/database. Note that the db "magento_session" has to exist prior to issuing the command above.
+
+With vmod-curl and the show function above in place, search for "curl" in the magento.vcl file and uncomment the affected lines. Then just restart Varnish and you should be good to go.
+
+**IMPORTANT!** If an apt-get upgrade also upgrades varnish, you *have* to recompile libvmod-curl again, using the whole procedure from `apt-get -b source varnish` and forward.
 
 FAQ
 ==
