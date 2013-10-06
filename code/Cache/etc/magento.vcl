@@ -89,12 +89,14 @@ sub vcl_recv {
         #
         #   https://gist.github.com/jonathanselander/1c71f413911116ecba11
         #
-        #curl.fetch("http://127.0.0.1:5984/magento_session/_design/misc/_show/is_session_valid/" + req.http.X-Session-UUID);
-        #if (curl.body() != "true") {
+        #if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$")) {
+        #    curl.fetch("http://127.0.0.1:5984/magento_session/_design/misc/_show/is_session_valid/" + req.http.X-Session-UUID);
+        #    if (curl.body() != "true") {
+        #        curl.free();
+        #        return(pass);
+        #    }
         #    curl.free();
-        #    return(pass);
         #}
-        #curl.free();
     }
 
     # Pass anything other than GET and HEAD directly.
