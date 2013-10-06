@@ -1,5 +1,5 @@
 <_>
-   <form_key>KtGGzOAEWMgYoNNg</form_key>
+   <form_key>egre3O78o9IXvlYR</form_key>
    <name>Made_Cache</name>
    <channel>community</channel>
    <version_ids>
@@ -18,7 +18,7 @@ ESI is supported in conjunction with Phoenix_VarnishCache, and allows for super-
 A good block cache is vital for scaling a site, be sure to implement it before residing to full page cache.</description>
    <license>4-clause BSD License</license>
    <license_uri/>
-   <version>1.4.4</version>
+   <version>1.4.5</version>
    <stability>stable</stability>
    <notes>N/A</notes>
    <authors>
@@ -49,7 +49,7 @@ A good block cache is vital for scaling a site, be sure to implement it before r
             <max/>
          </max>
          <files>
-            <files>                                                                                 </files>
+            <files>                                                                                  </files>
          </files>
       </package>
       <extension>
