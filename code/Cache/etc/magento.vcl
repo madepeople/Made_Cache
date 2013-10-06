@@ -77,25 +77,25 @@ sub vcl_recv {
     if (req.http.Cookie ~ "frontend=") {
         set req.http.X-Session-UUID =
             regsub(req.http.Cookie, ".*frontend=([^;]+).*", "\1");
-    }
 
-    # This is where we have to check for session validity. Needs the curl vmod
-    # to be installed and imported at the top of this file. If the session is
-    # invalid we pass the user to the backend. Your CouchDB URL has to be
-    # defined manually here, in the form:
-    #
-    #   http://couchdb.url.or.ip:port/magento_session/_design/misc/_show/is_session_valid/SESSION_ID_FROM_REQUEST
-    #
-    # The following show function needs to be defined in CouchDB as well:
-    #
-    #   https://gist.github.com/jonathanselander/1c71f413911116ecba11
-    #
-    #curl.fetch("http://127.0.0.1:5984/magento_session/_design/misc/_show/is_session_valid/" + req.http.X-Session-UUID);
-    #if (curl.body() != "true") {
-    #    curl.free();
-    #    return(pass);
-    #}
-    #curl.free();
+        # This is where we have to check for session validity. Needs the curl vmod
+        # to be installed and imported at the top of this file. If the session is
+        # invalid we pass the user to the backend. Your CouchDB URL has to be
+        # defined manually here, in the form:
+        #
+        #   http://couchdb.url.or.ip:port/magento_session/_design/misc/_show/is_session_valid/SESSION_ID_FROM_REQUEST
+        #
+        # The following show function needs to be defined in CouchDB as well:
+        #
+        #   https://gist.github.com/jonathanselander/1c71f413911116ecba11
+        #
+        #curl.fetch("http://127.0.0.1:5984/magento_session/_design/misc/_show/is_session_valid/" + req.http.X-Session-UUID);
+        #if (curl.body() != "true") {
+        #    curl.free();
+        #    return(pass);
+        #}
+        #curl.free();
+    }
 
     # Pass anything other than GET and HEAD directly.
     if (req.request != "GET" && req.request != "HEAD") {
