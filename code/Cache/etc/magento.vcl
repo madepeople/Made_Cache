@@ -55,7 +55,7 @@ sub vcl_recv {
         if (!client.ip ~ purge) {
             error 405 "Not allowed.";
         }
-        ban("req.url ~ .*");
+        ban("req.url ~ /");
         error 200 "Flushed";
     }
 
