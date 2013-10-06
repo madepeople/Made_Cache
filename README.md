@@ -101,8 +101,9 @@ mkdir -p varnish/out
 cd varnish
 apt-get -b source varnish
 
-git clone git@github.com:varnish/libvmod-curl.git
+git clone https://github.com/varnish/libvmod-curl.git
 cd libvmod-curl
+./autogen.sh
 ./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
 make
 make install
