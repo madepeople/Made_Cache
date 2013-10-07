@@ -186,6 +186,9 @@ sub vcl_fetch {
         # Hold down object variations by removing the referer header
         unset beresp.http.referer;
 
+        # We let Magento determine variations
+        unset beresp.http.vary;
+
         # Caching the cookie header would make multiple clients share session
         if (beresp.ttl > 0s) {
             set req.http.tempCookie = beresp.http.Set-Cookie;
