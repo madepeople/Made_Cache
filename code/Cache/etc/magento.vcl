@@ -1,3 +1,7 @@
+# Made_Cache (with optional Made_CouchdbSession) Varnish 3 VCL
+#
+# https://github.com/madepeople/Made_Cache
+#
 import std;
 
 # Uncomment this is you've compiled the libvmod-curl extension and have
@@ -89,7 +93,8 @@ sub vcl_recv {
         #
         #   https://gist.github.com/jonathanselander/1c71f413911116ecba11
         #
-        #if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$")) {
+        #if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") &&
+        #        !(req.url ~ "/madecache/varnish/(esi|messages)")) {
         #    curl.fetch("http://127.0.0.1:5984/magento_session/_design/misc/_show/is_session_valid/" + req.http.X-Session-UUID);
         #    if (curl.body() != "true") {
         #        curl.free();
@@ -169,25 +174,23 @@ sub vcl_fetch {
         return (hit_for_pass);
     }
 
+    # Hold down object variations by removing the referer and vary headers
+    unset beresp.http.referer;
+    unset beresp.http.vary;
+
     # If the X-Made-Cache-Ttl header is set, use it, otherwise default to
     # not caching the contents (0s)
     if (beresp.status == 200 || beresp.status == 301 || beresp.status == 404) {
         if (beresp.http.Content-Type ~ "text/html" || beresp.http.Content-Type ~ "text/xml") {
             set beresp.do_esi = true;
             set beresp.ttl = std.duration(beresp.http.X-Made-Cache-Ttl, 0s);
+
+            # Don't cache expire headers, we maintain those differently
+            unset beresp.http.expires;
         } else {
             # TTL for static content
             set beresp.ttl = 1w;
         }
-
-        # Don't cache expire headers, we maintain those differently
-        unset beresp.http.expires;
-
-        # Hold down object variations by removing the referer header
-        unset beresp.http.referer;
-
-        # We let Magento determine variations
-        unset beresp.http.vary;
 
         # Caching the cookie header would make multiple clients share session
         if (beresp.ttl > 0s) {
