@@ -95,7 +95,7 @@ First, install and configure [Made_CouchdbSession](https://github.com/madepeople
 
 ```bash
 apt-get update
-apt-get install build-essential dpkg-dev libcurl3-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc
+apt-get install build-essential dpkg-dev libcurl3-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc varnish libvarnishapi-dev
 
 mkdir -p varnish/out
 cd varnish
