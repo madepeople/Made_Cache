@@ -1,0 +1,15 @@
+{
+    "name": "madepeople/made-cache",
+    "license": "BSD-4-Clause",
+    "type": "magento-module",
+    "description": "Block Cache & Varnish extension for Magneto",
+    "authors": [
+        {
+            "name": "Jonathan Selander",
+            "email":"jonathan@madepeople.se"
+        }
+    ],
+    "require": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
