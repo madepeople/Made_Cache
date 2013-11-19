@@ -60,6 +60,10 @@ class Made_Cache_Model_Observer
                 Mage::getSingleton('cache/observer_checkout')
                     ->applyCartSidebar($block);
                 break;
+            case $block instanceof Mage_Page_Block_Html_Breadcrumbs:
+                Mage::getSingleton('cache/observer_page')
+                    ->applyBreadcrumbs($block);
+                break;
         }
 
         Mage::dispatchEvent('made_cache_setup_block_after', array(
