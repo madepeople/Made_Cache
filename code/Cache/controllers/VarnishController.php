@@ -1,7 +1,6 @@
 <?php
 /**
- * Custom action for use together with Phoenix_VarnishCache to allow
- * ESI block caching
+ * Controller that handles Varnish ESI actions and messages
  *
  * @package Made_Cache
  * @author info@madepeople.se

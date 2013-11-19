@@ -14,7 +14,7 @@ This module enhances performance by allowing developers to cache any block they 
 
 There is also support for disabling cache for specific handles such as checkout, etc, where you don&apos;t want to load the main content block from cache.
 
-ESI is supported in conjunction with Phoenix_VarnishCache, and allows for super-fast page views. Check out layout/madecache.xml for examples.
+ESI is supported and allows for super-fast page views. Check out layout/madecache.xml for examples.
 
 A good block cache is vital for scaling a site, be sure to implement it before residing to full page cache.</description>
    <license>4-clause BSD License</license>

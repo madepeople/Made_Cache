@@ -1,7 +1,7 @@
 <?php
 /**
  * Manage tag-specific cache cleaning
- * 
+ *
  * @package Made_Cache
  * @author info@madepeople.se
  * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
@@ -12,7 +12,7 @@ class Made_Cache_Model_VarnishObserver
      * Simple, default is 0 expiry meaning no caching. For every action that
      * requires caching we add it explicitly. Static content is not within
      * this scope.
-     * 
+     *
      * @param Varien_Event_Observer $observer
      */
     public function initializeResponseHeaders(Varien_Event_Observer $observer)
@@ -21,21 +21,21 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $response = $observer->getEvent()
                 ->getControllerAction()
                 ->getResponse();
-        
+
         if (Mage::getStoreConfig('cache/varnish/debug')) {
             $response->setHeader('X-Made-Cache-Debug', 1);
         }
     }
-    
+
     /**
      * Set TTL for varnish. Since we use ESI we only need to offer the
      * simple possibility to blacklist per request route.
-     * 
-     * @param Varien_Event_Observer $observer 
+     *
+     * @param Varien_Event_Observer $observer
      */
     public function setVarnishCacheHeaders(Varien_Event_Observer $observer)
     {
@@ -44,54 +44,53 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $controller = $observer->getEvent()->getControllerAction();
         $ttl = Mage::helper('cache/varnish')->getRequestTtl($controller->getRequest());
         if (empty($ttl)) {
             return;
         }
-        
+
         $response = $controller->getResponse();
         $response->setHeader('X-Made-Cache-Ttl', $ttl, true);
     }
-        
+
     /**
      * Add 'varnish_enabled' to the list of layout handles, so developers
      * can target layout XML entries for when varnish is in front
-     * 
+     *
      * @param Varien_Event_Observer $observer
-     * @return void 
+     * @return void
      */
     public function addLayoutHandle(Varien_Event_Observer $observer)
     {
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $observer->getEvent()
                 ->getLayout()
                 ->getUpdate()
                 ->addHandle('varnish_enabled');
     }
-    
+
     /**
      * ESI tags for Varnish, needs the block to have the attribute esi === 1
-     * as well as Varnish configured with for instance Phoenix_VarnishCache
-     * 
-     * @param Varien_Event_Observer $observer 
+     *
+     * @param Varien_Event_Observer $observer
      */
     public function addEsiTag(Varien_Event_Observer $observer)
-    {        
+    {
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $block = $observer->getEvent()->getBlock();
 
         if ($block->getData('esi')) {
             $layoutHandles = $block->getLayout()->getUpdate()
                     ->getHandles();
-            
+
             $esiPath = 'madecache/varnish/esi'
                     . '/hash/' . Mage::helper('cache/varnish')->getLayoutHash($block)
                     . '/block/' . base64_encode($block->getNameInLayout())
@@ -103,17 +102,17 @@ class Made_Cache_Model_VarnishObserver
                     'product' => $product->getId()
                 )));
             }
-            
+
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
             $transport = $observer->getEvent()->getTransport();
             $transport->setHtml($html);
         }
     }
-    
+
     /**
      * Clear user-specific cache when at a non-cachable request because these
-     * are what modify the session 
-     * 
+     * are what modify the session
+     *
      * @param Varien_Event_Observer $observer
      */
     public function purgeUserCache(Varien_Event_Observer $observer)
@@ -123,7 +122,7 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $controller = $observer->getEvent()->getControllerAction();
         $request = $controller->getRequest();
         $ttl = Mage::helper('cache/varnish')->getRequestTtl($request);
@@ -131,7 +130,7 @@ class Made_Cache_Model_VarnishObserver
             // Only purge for routes that don't cache
             return;
         }
-        
+
         if ($request->getModuleName() === 'madecache'
                 && $request->getControllerName() === 'varnish') {
             // It's stupid for ESI requests to clear themselves
@@ -140,10 +139,10 @@ class Made_Cache_Model_VarnishObserver
 
         Mage::helper('cache/varnish')->purgeUserCache();
     }
-    
+
     /**
      * Flush everything currently in the Varnish cache
-     * 
+     *
      * @param Varien_Event_Observer $observer
      */
     public function flush(Varien_Event_Observer $observer)
@@ -151,7 +150,7 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $eventName = $observer->getEvent()->getName();
         if ($eventName === 'adminhtml_cache_refresh_type') {
             $flush = $observer->getEvent()->getType() === 'varnish';
@@ -170,26 +169,26 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
     }
-    
+
     /**
      * Purge cache in Varnish including entity cache such as products,
      * categories and CMS pages by doing lookups in the rewrite table
-     * 
+     *
      * Uses code from magneto-varnish.
-     * 
+     *
      * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L65
-     * @param Varien_Event_Observer $observer 
+     * @param Varien_Event_Observer $observer
      */
     public function purge(Varien_Event_Observer $observer)
     {
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
-        
+
         $tags = $observer->getEvent()->getTags();
         $urls = array();
-        
-        // Compute the urls for affected entities 
+
+        // Compute the urls for affected entities
         foreach ((array)$tags as $tag) {
             $tag_fields = explode('_', $tag);
             if (count($tag_fields) === 3) {
@@ -212,11 +211,11 @@ class Made_Cache_Model_VarnishObserver
         foreach ($urls as $url) {
             $relativeUrls[] = parse_url($url, PHP_URL_PATH);
         }
-        
+
         if (!empty($relativeUrls)) {
             $relativeUrls = array_unique($relativeUrls);
             $errors = Mage::helper('cache/varnish')->ban($relativeUrls);
-            
+
             // Varnish purge messages should only appear in the backend
             if (Mage::app()->getStore()->isAdmin()) {
                 if (!empty($errors)) {
@@ -231,12 +230,12 @@ class Made_Cache_Model_VarnishObserver
 
         return $this;
     }
-    
+
     /**
      * Returns all the urls related to product
-     * 
+     *
      * Uses code from magneto-varnish.
-     * 
+     *
      * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L133
      * @param Mage_Catalog_Model_Product $product
      */
@@ -274,11 +273,11 @@ class Made_Cache_Model_VarnishObserver
         return $urls;
     }
 
-    /** 
+    /**
      * Returns all the urls pointing to the category
-     * 
+     *
      * Uses code from magneto-varnish.
-     * 
+     *
      * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L171
      */
     protected function _getUrlsForCategory($category) {
@@ -310,9 +309,9 @@ class Made_Cache_Model_VarnishObserver
 
     /**
      * Returns all urls related to this cms page
-     * 
+     *
      * Uses code from magneto-varnish.
-     * 
+     *
      * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L201
      */
     protected function _getUrlsForCmsPage($cmsPageId)
