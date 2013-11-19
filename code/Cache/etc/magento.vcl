@@ -216,6 +216,8 @@ sub vcl_fetch {
 sub vcl_deliver {
     # To debug if it's a hit or a miss
     set resp.http.Cache-Control = "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+    unset resp.http.X-Magento-Store;
+    unset resp.http.X-Session-UUID;
 
     if (req.http.tempCookie) {
         # Version of https://www.varnish-cache.org/trac/wiki/VCLExampleLongerCaching
