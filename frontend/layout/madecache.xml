@@ -14,7 +14,6 @@
                 9999999999 seconds
             -->
             <name lifetime="86400">cms_page</name>
-            <name>breadcrumbs</name>
             <name>before_body_end</name>
             <name>product.info</name>
             <name>product_list</name>
