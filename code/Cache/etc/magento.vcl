@@ -145,6 +145,10 @@ sub vcl_hash {
         hash_data(req.url);
     }
 
+    if (req.http.X-Magento-Store && req.http.X-Magento-Store != "") {
+        hash_data(req.http.X-Magento-Store);
+    }
+
     # Also consider the host name for caching (multi-site with different themes etc)
     if (req.http.host) {
         hash_data(req.http.host);
