@@ -161,6 +161,27 @@ class Made_Cache_Model_Observer_Catalog
     }
 
     /**
+     * Search result cache, caches the child product list block
+     *
+     * @param Mage_CatalogSearch_Block_Advanced_Result $block
+     */
+    public function applySearchResult(Mage_CatalogSearch_Block_Advanced_Result $block)
+    {
+        // The "messages" block is session-dependent, don't cache
+        if (Mage::helper('cache')->responseHasMessages()) {
+            $block->setData('cache_lifetime', null);
+            return;
+        }
+
+        // We cache the product list child, not the result block itself
+        $block->setCacheLifetime(null);
+
+        // The toolbar needs to apply sort order etc
+        $productListBlock = $block->getChild('search_result_list');
+        $this->applyProductList($productListBlock);
+    }
+
+    /**
      * Layered navigation block, clears on changed associated category ID
      *
      * @param Mage_Catalog_Block_Layer_View $block
