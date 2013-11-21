@@ -72,4 +72,25 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
         return (bool)Mage::getModel('core/message_collection')
                 ->count();
     }
+    
+    /**
+     * Get product IDs for related products (useful when generating cache tags)
+     * 
+     * @param array $productIds
+     * @return array
+     */
+    public function getChildProductIds($productIds)
+    {
+        $resource = Mage::getSingleton('core/resource');
+        $read = $resource->getConnection('core_read');
+        $select = $read->select()
+                ->from($resource->getTableName('catalog/product_super_link'), array('product_id'))
+                ->where('parent_id IN(?)', $productIds);
+        
+        $childIds = array();
+        foreach ($read->fetchAll($select) AS $link) {
+            $childIds[] = $link['product_id'];
+        }
+        return $childIds;
+    }    
 }
