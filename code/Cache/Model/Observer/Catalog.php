@@ -126,9 +126,19 @@ class Made_Cache_Model_Observer_Catalog
 
         $_toolbar->setCollection($productCollection);
 
+        $productIds = array();
         foreach ($productCollection as $_product) {
             $tags[] = Mage_Catalog_Model_Product::CACHE_TAG."_".$_product->getId();
+            $productIds[] = $_product->getId();
         }
+        
+        if (!empty($productIds)) {
+            $childIds = Mage::helper('cache')->getChildProductIds($productIds);
+            foreach ($childIds as $childId) {
+                $tags[] = Mage_Catalog_Model_Product::CACHE_TAG . '_' . $childId;
+            }
+        }
+        
         $block->setData('cache_tags', $tags);
 
         // Set cache key
