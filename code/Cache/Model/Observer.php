@@ -79,13 +79,8 @@ class Made_Cache_Model_Observer
     public function reviewSaveAfter(Varien_Event_Observer $observer)
     {
         $object = $observer->getObject();
-        $productCollection = $object->getProductCollection()
-                ->addAttributeToFilter('rt.review_id',
-                        array('eq' => $object->getId()));
-
-        foreach ($productCollection as $product) {
-            $product->cleanCache();
-        }
+        $cacheKey = Mage_Catalog_Model_Product::CACHE_TAG . '_' . $object->getEntityPkValue();
+        Mage::app()->cleanCache($cacheKey);
     }
 
     /**
