@@ -1,66 +1,82 @@
 <?php
 
+require 'Predis/Autoloader.php';
+Predis\Autoloader::register(true);
+
 class Made_Cache_Backend_Redis extends Zend_Cache_Backend
     implements Zend_Cache_Backend_ExtendedInterface
 {
     private $_client;
 
-    /**
-     * Set some default values as well, it always makes sense
-     *
-     * @param array $options
-     */
-    public function __construct(array $options = array())
-    {
-        parent::__construct($options);
-
-        $defaults = array(
-            'hostname' => '127.0.0.1',
-            'port' => 6379,
-            'timeout' => '2.5'
-        );
-
-        foreach ($defaults as $option => $defaultValue) {
-            if (empty($this->_options[$option])) {
-                $this->setOption($option, $defaultValue);
-            }
-        }
-    }
-
-    /**
-     * Close the connection on destruction
-     */
-    public function __destruct()
-    {
-        if ($this->_client !== null) {
-            $this->_client->close();
-        }
-    }
+    protected $_options = array(
+        'hostname' => '127.0.0.1',
+        'port' => 6379,
+        'timeout' => '2.5',
+        'prefix' => 'mc:',
+    );
+    protected $_keySet = 'magento_keys';
+    protected $_tagSet = 'magento_tags';
+    protected $_metadataPrefix = 'metadata_';
 
     /**
      * The idea with not returning the client is to bypass caching in case of
      * an error, instead of breaking the world
      *
-     * @return null|Redis
+     * @return null|Predis\Client
      */
     private function _getClient()
     {
         if ($this->_client === null) {
-            $options = $this->_options;
-            $client = new Predis\Client([
+            $this->_client = new Predis\Client(array(
                 'scheme' => 'tcp',
-                'host'   => $options['hostname'],
-                'port'   => $options['port'],
-            ]);
-
-//            $client = new Redis();
-//            $result = $client->connect($options['hostname'], $options['port'],
-//                $options['timeout'], null, 100);
-//            if ($result === true) {
-//                $this->_client = $client;
-//            }
+                'host' => $this->_options['hostname'],
+                'port' => $this->_options['port'],
+            ), array(
+                'prefix' => $this->_options['prefix'],
+                'profile' => '2.8',
+            ));
         }
         return $this->_client;
+    }
+
+    /**
+     * SSCAN away to find all keys in a set. We use sets because grouping
+     * within the same prefix (means we can have different prefixes for normal
+     * cache and the full page cache)
+     *
+     * @param $client
+     * @param $setName
+     * @return array
+     */
+    protected function _getSetArray($client, $setName)
+    {
+        $keys = array();
+        $cursor = 0;
+        while ((list ($cursor, $content) = $client->sscan($setName, $cursor))
+                && !empty($content)) {
+            $keys = array_merge($keys, $content);
+
+            if ($cursor === 0) {
+                break;
+            }
+        }
+        return $keys;
+    }
+
+    /**
+     * Save updated metadata for the specified ID
+     *
+     * @param $client
+     * @param $id
+     * @param $metadatas
+     */
+    protected function _saveMetadata($client, $id, $metadata)
+    {
+        $metadataKey = $this->_metadataPrefix . $id;
+        $metadata['mtime'] = time();
+        $metadata['tags'] = json_encode($metadata['tags']);
+        $client->hmset($metadataKey, $metadata);
+        $client->expireat($metadataKey, $metadata['expire']);
     }
 
     /**
@@ -70,7 +86,9 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getIds()
     {
-        // TODO: Implement getIds() method.
+        $client = $this->_getClient();
+        $keys = $this->_getSetArray($client, $this->_keySet);
+        return $keys;
     }
 
     /**
@@ -80,7 +98,9 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getTags()
     {
-        // TODO: Implement getTags() method.
+        $client = $this->_getClient();
+        $tags = $this->_getSetArray($client, $this->_tagSet);
+        return $tags;
     }
 
     /**
@@ -93,7 +113,15 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getIdsMatchingTags($tags = array())
     {
-        // TODO: Implement getIdsMatchingTags() method.
+        $client = $this->_getClient();
+        $ids = array();
+        foreach ($tags as $tag) {
+            $keys = $this->_getSetArray($client, $tag);
+            foreach ($keys as $key) {
+                $ids[] = $key;
+            }
+        }
+        return $ids;
     }
 
     /**
@@ -106,7 +134,8 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getIdsNotMatchingTags($tags = array())
     {
-        // TODO: Implement getIdsNotMatchingTags() method.
+        $client = $this->_getClient();
+        return $client->sdiff($this->_keySet, $tags);
     }
 
     /**
@@ -119,7 +148,8 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getIdsMatchingAnyTags($tags = array())
     {
-        // TODO: Implement getIdsMatchingAnyTags() method.
+        $client = $this->_getClient();
+        return $client->sunion($tags);
     }
 
     /**
@@ -129,7 +159,8 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getFillingPercentage()
     {
-        // TODO: Implement getFillingPercentage() method.
+        // Redis cleans up itself
+        return 0;
     }
 
     /**
@@ -145,7 +176,11 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getMetadatas($id)
     {
-        // TODO: Implement getMetadatas() method.
+        $client = $this->_getClient();
+        $metadataKey = $this->_metadataPrefix . $id;
+        $result = $client->hmget($metadataKey);
+        $result['tags'] = json_decode($result['tags']);
+        return $result;
     }
 
     /**
@@ -157,7 +192,16 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function touch($id, $extraLifetime)
     {
-        // TODO: Implement touch() method.
+        $client = $this->_getClient();
+        $pipe = $client->pipeline();
+        $ttl = $pipe->ttl($id);
+        $lifetime = $ttl + $extraLifetime;
+        $pipe->expireat($id, $lifetime);
+        $metadata = $this->getMetadatas($id);
+        $metadata['expire'] = $lifetime;
+        $this->_saveMetadata($pipe, $id, $metadata);
+        $result = $pipe->execute();
+        return (bool)$result[1];
     }
 
     /**
@@ -176,7 +220,14 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function getCapabilities()
     {
-        // TODO: Implement getCapabilities() method.
+        return array(
+            'automatic_cleaning' => false,
+            'tags' => true,
+            'expired_read' => false,
+            'priority' => false,
+            'infinite_lifetime' => true,
+            'get_list' => true
+        );
     }
 
     /**
@@ -190,7 +241,12 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
-        // TODO: Implement load() method.
+        $client = $this->_getClient();
+        $data = $client->get($id);
+        if ($data === null) {
+            return false;
+        }
+        return $data;
     }
 
     /**
@@ -201,7 +257,23 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function test($id)
     {
-        // TODO: Implement test() method.
+        $client = $this->_getClient();
+        $pipe = $client->pipeline();
+        if ($pipe->exists($id)) {
+            $metadataKey = $this->_metadataPrefix . $id;
+            $pipe->hmget($metadataKey);
+        }
+        $result = $pipe->execute();
+
+        if (count($result) === 1) {
+            // It failed at EXISTS
+            return false;
+        }
+        $metadata = $result[1];
+        if (!is_array($metadata) || empty($metadata['mtime'])) {
+            return false;
+        }
+        return $metadata['mtime'];
     }
 
     /**
@@ -218,9 +290,26 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function save($data, $id, $tags = array(), $specificLifetime = false)
     {
-        // TODO: Implement save() method.
         $client = $this->_getClient();
-
+        $pipe = $client->pipeline();
+        $pipe->set($id, $data);
+        $lifetime = $this->getLifetime($specificLifetime);
+        if ($lifetime !== null) {
+            // Automatic key expiration
+            $lifetime += time();
+            $pipe->expireat($id, $lifetime);
+        }
+        $pipe->sadd($this->_keySet, $id);
+        foreach ($tags as $tag) {
+            $pipe->sadd($tag, $id);
+            $pipe->sadd($this->_tagSet, $tag);
+        }
+        $this->_saveMetadata($pipe, $id, array(
+            'expire' => $lifetime,
+            'tags' => $tags
+        ));
+        $pipe->execute();
+        return true;
     }
 
     /**
@@ -231,7 +320,10 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function remove($id)
     {
-        // TODO: Implement remove() method.
+        $client = $this->_getClient();
+        $client->del($id);
+        $client->del($this->_metadataPrefix . $id);
+        return true;
     }
 
     /**
@@ -253,6 +345,35 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
      */
     public function clean($mode = Zend_Cache::CLEANING_MODE_ALL, $tags = array())
     {
-        // TODO: Implement clean() method.
+        $client = $this->_getClient();
+        $keys = null;
+        switch ($mode) {
+            case Zend_Cache::CLEANING_MODE_ALL:
+                $client->flushall();
+                break;
+            case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
+                $keys = $this->getIdsMatchingTags($tags);
+                break;
+            case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
+                $keys = $this->getIdsNotMatchingTags($tags);
+                break;
+            case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
+                $keys = $this->getIdsMatchingAnyTags($tags);
+                break;
+            case Zend_Cache::CLEANING_MODE_OLD:
+                // Redis handles expiration on its own
+                break;
+        }
+
+        if ($keys !== null) {
+            $pipe = $client->pipeline();
+            foreach ($keys as $key) {
+                $pipe->del($key);
+                $pipe->del($this->_metadataPrefix . $key);
+            }
+            $pipe->execute();
+        }
+
+        return true;
     }
 }
