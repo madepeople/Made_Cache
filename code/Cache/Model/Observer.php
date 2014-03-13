@@ -64,6 +64,10 @@ class Made_Cache_Model_Observer
                 Mage::getSingleton('cache/observer_checkout')
                     ->applyCartSidebar($block);
                 break;
+            default:
+                Mage::getSingleton('cache/observer_default')
+                    ->applyDefault($block);
+                break;
         }
 
         Mage::dispatchEvent('made_cache_setup_block_after', array(
