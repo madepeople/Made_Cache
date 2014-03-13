@@ -18,7 +18,7 @@
                 <varnish translate="label,description" module="cache">
                     <label>Varnish</label>
                     <description><![CDATA[Full page cache. Requires a configured Varnish daemon, see https://www.varnish-cache.org/]]></description>
-                    <tags/>
+                    <tags>FPC_VARNISH</tags>
                 </varnish>
             </types>
         </cache>
