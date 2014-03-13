@@ -47,12 +47,18 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
     {
         if ($this->_client === null) {
             $options = $this->_options;
-            $client = new Redis();
-            $result = $client->connect($options['hostname'], $options['port'],
-                $options['timeout'], null, 100);
-            if ($result === true) {
-                $this->_client = $client;
-            }
+            $client = new Predis\Client([
+                'scheme' => 'tcp',
+                'host'   => $options['hostname'],
+                'port'   => $options['port'],
+            ]);
+
+//            $client = new Redis();
+//            $result = $client->connect($options['hostname'], $options['port'],
+//                $options['timeout'], null, 100);
+//            if ($result === true) {
+//                $this->_client = $client;
+//            }
         }
         return $this->_client;
     }
