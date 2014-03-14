@@ -11,13 +11,13 @@ import std;
 
 backend default {
     .host = "127.0.0.1";
-    .port = "9000";
+    .port = "8080";
 }
 
 # The admin backend needs longer timeout values
 backend admin {
     .host = "127.0.0.1";
-    .port = "9000";
+    .port = "8080";
     .first_byte_timeout = 18000s;
     .between_bytes_timeout = 18000s;
 }
