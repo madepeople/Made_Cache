@@ -13,6 +13,7 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
         'port' => 6379,
         'timeout' => '2.5',
         'prefix' => 'mc:',
+        'database' => 0,
     );
     protected $_keySet = 'magento_keys';
     protected $_tagSet = 'magento_tags';
@@ -32,6 +33,7 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
                 'scheme' => 'tcp',
                 'host' => $this->_options['hostname'],
                 'port' => $this->_options['port'],
+                'database' => $this->_options['database'],
             ), array(
                 'prefix' => $this->_options['prefix'],
                 'profile' => '2.8',
@@ -356,7 +358,7 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
         $keys = null;
         switch ($mode) {
             case Zend_Cache::CLEANING_MODE_ALL:
-                $client->flushall();
+                $client->flushdb();
                 break;
             case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
                 $keys = $this->getIdsMatchingTags($tags);
