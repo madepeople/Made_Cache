@@ -17,6 +17,7 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
     protected $_keySet = 'magento_keys';
     protected $_tagSet = 'magento_tags';
     protected $_metadataPrefix = 'metadata_';
+    protected $_defaultExpiry = 259200; // Expire a key after a month, regardless
 
     /**
      * The idea with not returning the client is to bypass caching in case of
@@ -76,6 +77,7 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
         $metadata['mtime'] = time();
         $metadata['tags'] = json_encode($metadata['tags']);
         $client->hmset($metadataKey, $metadata);
+        $client->expire($metadataKey, $this->_defaultExpiry);
         $client->expireat($metadataKey, $metadata['expire']);
     }
 
@@ -298,11 +300,16 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
             // Automatic key expiration
             $lifetime += time();
             $pipe->expireat($id, $lifetime);
+        } else {
+            $pipe->expire($id, $this->_defaultExpiry);
         }
         $pipe->sadd($this->_keySet, $id);
+        $pipe->expire($this->_keySet, $this->_defaultExpiry);
         foreach ($tags as $tag) {
             $pipe->sadd($tag, $id);
+            $pipe->expire($tag, $this->_defaultExpiry);
             $pipe->sadd($this->_tagSet, $tag);
+            $pipe->expire($this->_tagSet, $this->_defaultExpiry);
         }
         $this->_saveMetadata($pipe, $id, array(
             'expire' => $lifetime,
