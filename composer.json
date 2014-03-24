@@ -2,7 +2,7 @@
     "name": "madepeople/made-cache",
     "license": "BSD-4-Clause",
     "type": "magento-module",
-    "description": "Block Cache & Varnish extension for Magneto",
+    "description": "Block Cache & Varnish extension for Magento",
     "authors": [
         {
             "name": "Jonathan Selander",
