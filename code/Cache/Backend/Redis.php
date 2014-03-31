@@ -79,7 +79,6 @@ class Made_Cache_Backend_Redis extends Zend_Cache_Backend
         $metadata['mtime'] = time();
         $metadata['tags'] = json_encode($metadata['tags']);
         $client->hmset($metadataKey, $metadata);
-        $client->expire($metadataKey, $this->_defaultExpiry);
         $client->expireat($metadataKey, $metadata['expire']);
     }
 
