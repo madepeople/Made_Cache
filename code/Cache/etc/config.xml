@@ -256,16 +256,10 @@
             </general>
             <varnish>
                 <ttl>1w</ttl>
-                <nocache_routes><![CDATA[customer
-checkout
-streamcheckout
-onestepcheckout
-ajaxcart
-catalog/product_compare
-wishlist
-moneybookers
-paypal]]>
-                </nocache_routes>
+                <cache_routes><![CDATA[catalog
+review
+cms]]>
+                </cache_routes>
                 <servers>127.0.0.1</servers>
                 <debug>0</debug>
             </varnish>

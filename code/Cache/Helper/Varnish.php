@@ -218,9 +218,9 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
             return null;
         }
 
-        $noCacheRoutes = Mage::getStoreConfig('cache/varnish/nocache_routes');
+        $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
 
-        if ($this->_matchRoutesAgainstRequest($noCacheRoutes, $request)
+        if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
                 || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
             return null;
         }
