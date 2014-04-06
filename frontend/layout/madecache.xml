@@ -79,9 +79,9 @@
             "content" block
         -->
         <reference name="content">
-            <!-- Comment this out if you're using CouchDB sessions and
+            <!-- Comment this out if you're using Redis or CouchDB sessions and
                  validation inside your Varnish VCL -->
-            <block type="cache/varnish_footer" name="varnish_cache_footer" after="-"/>
+            <!--<block type="cache/varnish_footer" name="varnish_cache_footer" after="-"/>-->
         </reference>
     </varnish_enabled>
 

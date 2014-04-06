@@ -4,20 +4,19 @@
 #
 import std;
 
-# Uncomment this is you've compiled the libvmod-curl extension and have
-# CouchDB session management set up. Also, search for "curl" in this file
-# and set the rest up
+# curl is needed for CouchDB session, redis for, well, Redis sessions.
 #import curl;
+#import redis;
 
 backend default {
     .host = "127.0.0.1";
-    .port = "9000";
+    .port = "8080";
 }
 
 # The admin backend needs longer timeout values
 backend admin {
     .host = "127.0.0.1";
-    .port = "9000";
+    .port = "8080";
     .first_byte_timeout = 18000s;
     .between_bytes_timeout = 18000s;
 }
@@ -82,10 +81,13 @@ sub vcl_recv {
         set req.http.X-Session-UUID =
             regsub(req.http.Cookie, ".*frontend=([^;]+).*", "\1");
 
+        #
+        # CouchDB Setup
+        #
         # If you use CouchDB sessions you can include this snippet for instance
         # session validation. The pro is that we know exactly who's allowed to
         # see the backend or not and that it's not browser dependent. The con is
-        # that you needa configured CouchDB server set up to handle your
+        # that you need a configured CouchDB server set up to handle your
         # sessions, using this module
         #
         #   https://github.com/madepeople/Made_CouchdbSession
@@ -104,6 +106,26 @@ sub vcl_recv {
         #        return(pass);
         #    }
         #    curl.free();
+        #}
+
+        #
+        # Redis Setup
+        #
+        # If you use Redis sessions you can include this snippet for instance
+        # session validation. The pro is that we know exactly who's allowed to
+        # see the backend or not and that it's not browser dependent. The con is
+        # that you need a configured Redis server set up to handle your
+        # sessions
+        #
+        # You need the Redis vmod to be installed and imported at the top of this
+        # file. If the session is invalid we pass the user to the backend.
+        #
+        #if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") &&
+        #        !(req.url ~ "/madecache/varnish/(esi|messages)")) {
+        #    set req.http.x-redis = redis.call("GET " + req.http.X-Session-UUID);
+        #    if (req.http.x-redis == "0") {
+        #        return(pass);
+        #    }
         #}
     }
 

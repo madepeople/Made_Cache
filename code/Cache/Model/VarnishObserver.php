@@ -23,8 +23,8 @@ class Made_Cache_Model_VarnishObserver
         }
 
         $response = $observer->getEvent()
-                ->getControllerAction()
-                ->getResponse();
+            ->getControllerAction()
+            ->getResponse();
 
         if (Mage::getStoreConfig('cache/varnish/debug')) {
             $response->setHeader('X-Made-Cache-Debug', 1);
