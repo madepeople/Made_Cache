@@ -13,8 +13,8 @@ class Made_Cache_Redis_Session
         'hostname' => '127.0.0.1',
         'port' => 6379,
         'timeout' => '2.5',
-        'prefix' => 'ms:',
-        'database' => 2,
+        'prefix' => '',
+        'database' => 1,
     );
     protected $_keySet = 'magento_session';
     protected $_defaultExpiry = 259200; // Expire a key after a month, regardless
@@ -30,8 +30,9 @@ class Made_Cache_Redis_Session
 
         foreach (array_keys($this->_options) as $key) {
             $xmlPath = self::XML_BASE_PATH . '/' . $key;
-            $value = trim((string)Mage::getConfig()->getNode($xmlPath));
-            if (!empty($value)) {
+            $value = Mage::getConfig()->getNode($xmlPath);
+            if ($value !== false) {
+                $value = trim((string)$value);
                 $this->_options[$key] = $value;
             }
         }
@@ -178,7 +179,7 @@ class Made_Cache_Redis_Session
      */
     public function write($id, $data)
     {
-        if (Mage::registry('no_session_write')) {
+        if (Mage::registry('skip_session_write')) {
             // Fake a session write if the cookie doesn't exist in an ESI
             // request
             return true;

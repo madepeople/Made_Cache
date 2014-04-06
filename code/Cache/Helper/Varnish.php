@@ -218,22 +218,21 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
             return null;
         }
 
-        $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
-
-        if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
-                || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
-            return null;
+        if ($this->_matchRoutesAgainstRequest('madecache/varnish/esi', $request)) {
+            // All ESI requests should have the same TTL as the session itself
+            return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime')) . 's';
         }
 
         // Messages should only be cached if they are empty
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/messages', $request)
-                && Mage::helper('cache')->responseHasMessages()) {
+            && Mage::helper('cache')->responseHasMessages()) {
             return null;
         }
 
-        if ($this->_matchRoutesAgainstRequest('madecache/varnish/esi', $request)) {
-            // All ESI requests should have the same TTL as the session itself
-            return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime')) . 's';
+        $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
+        if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
+                || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
+            return null;
         }
 
         return Mage::getStoreConfig('cache/varnish/ttl');

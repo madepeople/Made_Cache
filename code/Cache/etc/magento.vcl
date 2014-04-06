@@ -1,4 +1,4 @@
-# Made_Cache (with optional Made_CouchdbSession) Varnish 3 VCL
+# Made_Cache Varnish 3 VCL
 #
 # https://github.com/madepeople/Made_Cache
 #
@@ -76,6 +76,28 @@ sub vcl_recv {
         set req.backend = admin;
     }
 
+    # Pass anything other than GET and HEAD directly.
+    if (req.request != "GET" && req.request != "HEAD") {
+        # We only deal with GET and HEAD by default
+        return (pass);
+    }
+
+    # Normalize Aceept-Encoding header to reduce vary
+    # http://varnish.projects.linpro.no/wiki/FAQ/Compression
+    if (req.http.Accept-Encoding) {
+        if (req.url ~ "\.(jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") {
+            # No point in compressing these
+            remove req.http.Accept-Encoding;
+        } elsif (req.http.Accept-Encoding ~ "gzip") {
+            set req.http.Accept-Encoding = "gzip";
+        } elsif (req.http.Accept-Encoding ~ "deflate" && req.http.user-agent !~ "MSIE") {
+            set req.http.Accept-Encoding = "deflate";
+        } else {
+            # unkown algorithm
+            remove req.http.Accept-Encoding;
+        }
+    }
+
     # Keep track of logged in users
     if (req.http.Cookie ~ "frontend=") {
         set req.http.X-Session-UUID =
@@ -127,28 +149,10 @@ sub vcl_recv {
         #        return(pass);
         #    }
         #}
-    }
-
-    # Pass anything other than GET and HEAD directly.
-    if (req.request != "GET" && req.request != "HEAD") {
-        # We only deal with GET and HEAD by default
-        return (pass);
-    }
-
-    # Normalize Aceept-Encoding header to reduce vary
-    # http://varnish.projects.linpro.no/wiki/FAQ/Compression
-    if (req.http.Accept-Encoding) {
-        if (req.url ~ "\.(jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") {
-            # No point in compressing these
-            remove req.http.Accept-Encoding;
-        } elsif (req.http.Accept-Encoding ~ "gzip") {
-            set req.http.Accept-Encoding = "gzip";
-        } elsif (req.http.Accept-Encoding ~ "deflate" && req.http.user-agent !~ "MSIE") {
-            set req.http.Accept-Encoding = "deflate";
-        } else {
-            # unkown algorithm
-            remove req.http.Accept-Encoding;
-        }
+    } else {
+        # If you use a setup with couch or redis, uncomment the line below,
+        # otherwise keep it commented.
+        # return(pass);
     }
 
     return (lookup);
