@@ -114,7 +114,7 @@ We will be using Debian/Ubuntu steps for reference. First of all the sources to 
 
 ```bash
 apt-get update
-apt-get install build-essential dpkg-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc libvarnishapi-dev
+apt-get install build-essential dpkg-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc libvarnishapi-dev autoconf automake autotools-dev libtool pkg-config
 
 mkdir -p varnish/out
 cd varnish
@@ -141,10 +141,13 @@ With vmod-curl and the show function above in place, search for "curl" in the ma
 
 Redis Configuration
 --
+
+We just need to install the redis vmod the same way as the curl vmod
+
 ```bash
 apt-get install libhiredis-dev
-git clone https://github.com/varnish/libvmod-curl.git
-cd libvmod-curl
+git clone https://github.com/brandonwamboldt/libvmod-redis.git
+cd libvmod-redis
 ./autogen.sh
 ./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
 make

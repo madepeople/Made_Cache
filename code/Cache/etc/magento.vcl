@@ -93,7 +93,7 @@ sub vcl_recv {
         } elsif (req.http.Accept-Encoding ~ "deflate" && req.http.user-agent !~ "MSIE") {
             set req.http.Accept-Encoding = "deflate";
         } else {
-            # unkown algorithm
+            # Unknown algorithm
             remove req.http.Accept-Encoding;
         }
     }
