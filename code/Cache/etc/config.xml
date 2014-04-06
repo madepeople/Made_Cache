@@ -36,6 +36,15 @@
                     <layout>Made_Cache_Model_Layout</layout>
                 </rewrite>
             </core>
+            <!-- Uncomment the below if you want to use the bundled redis
+                 session handler. You can also paste it into your local.xml -->
+            <!--
+            <core_resource>
+                <rewrite>
+                    <session>Made_Cache_Redis_Session</session>
+                </rewrite>
+            </core_resource>
+            -->
         </models>
         <blocks>
             <cache>
