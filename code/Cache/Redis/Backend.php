@@ -3,7 +3,7 @@
 require 'Predis/Autoloader.php';
 Predis\Autoloader::register(true);
 
-class Made_Cache_Backend_Redis extends Zend_Cache_Backend
+class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     implements Zend_Cache_Backend_ExtendedInterface
 {
     private $_client;
