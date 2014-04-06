@@ -60,17 +60,17 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </ttl>
-                        <nocache_routes>
-                            <label>Routes to exclude from cache</label>
+                        <cache_routes>
+                            <label>Routes to Include in Varnish Cache</label>
                             <comment>One per line: module, module/controller, or module/controller/action</comment>
                             <frontend_type>textarea</frontend_type>
                             <sort_order>2</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                        </nocache_routes>
+                        </cache_routes>
                         <servers>
-                            <label>IPs to Varnish servers</label>
+                            <label>IPs to Varnish Servers</label>
                             <comment>One per line</comment>
                             <frontend_type>textarea</frontend_type>
                             <sort_order>3</sort_order>

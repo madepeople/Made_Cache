@@ -77,30 +77,58 @@ It is technically possible for Varnish to check the actual session storage direc
 
 * **Files** - Hard to distribute on a network, and has locking issues
 * **Memcache** - Fast, but no persistence and no locking
-* **Redis** - Fast, has persistence, but not built-in locking
 * **MySQL** - Has persistence and locking, but performance is subject to all query noise that Magento creates
 
 Apart from these drawbacks, making Varnish to talk to the different storages isn't very straight forward.
 
-Given the above, I have experimented with using [CouchDB for sessions](https://github.com/madepeople/Made_CouchdbSession):
+Given the above, I have experimented with using Redis and [CouchDB](https://github.com/madepeople/Made_CouchdbSession):
+
+CouchDB pros:
 
 * MVCC instead of locking gives performance and consistency
 * Queried via a HTTP interface that Varnish can talk to easily using libvmod-curl
 * A JavaScript _show_ function can be used to determine session validity inside of CouchDB itself, and return a boolean to Varnish. If the boolean is "true", we know it's safe to serve the visitor content from cache.
 
-Varnish & CouchDB Configuration
---
-First, install and configure [Made_CouchdbSession](https://github.com/madepeople/Made_CouchdbSession) and make sure it's working. After this, Varnish needs [libvmod-curl](https://github.com/varnish/libvmod-curl) installed. For reference, here are Debian instructions:
+CouchDB cons:
 
+* The compaction process takes a lot of time and can make the general performance suffer
+* Every request means a new write, meaning the size of the database grows rapidly
+
+Redis pros:
+
+* Build-in optimistic locking
+* In-memory with optional persistance
+* [A Varnish Redis client exists](https://github.com/brandonwamboldt/libvmod-redis)
+
+Redis cons:
+
+* An improperly configured Redis daemon can out of memory crash and make break a site
+
+
+Varnish Session Validation
+==
+
+Initial Setup
+--
+We will be using Debian/Ubuntu steps for reference. First of all the sources to a built Varnish package need to exist since we want to build VMODs.
 
 ```bash
 apt-get update
-apt-get install build-essential dpkg-dev libcurl3-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc varnish libvarnishapi-dev
+apt-get install build-essential dpkg-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc libvarnishapi-dev
 
 mkdir -p varnish/out
 cd varnish
 apt-get -b source varnish
+```
 
+**IMPORTANT!** If an apt-get upgrade also upgrades varnish, you *have* to recompile libvmod-curl again, using the whole procedure from `apt-get -b source varnish` and forward.
+
+CouchDB Configuration
+--
+First, install and configure [Made_CouchdbSession](https://github.com/madepeople/Made_CouchdbSession) and make sure it's working. After this, Varnish needs [libvmod-curl](https://github.com/varnish/libvmod-curl) installed. For reference, here are Debian instructions:
+
+```bash
+apt-get install libcurl3-dev
 git clone https://github.com/varnish/libvmod-curl.git
 cd libvmod-curl
 ./autogen.sh
@@ -109,17 +137,19 @@ make
 make install
 ```
 
-The next step involves creating a show function inside of CouchDB that  can be used for determining if a session is valid or not.
-
-```bash
-curl -o- https://gist.github.com/jonathanselander/1c71f413911116ecba11/raw/9cf20bbe0803ad06731fe35d1769ed5aa155afd2/gistfile1.txt | curl -X PUT -d @- http://127.0.0.1:5984/magento_session/_design/misc
-```
-
-Modify the command to reflect your CouchDB host:port/database. Note that the db "magento_session" has to exist prior to issuing the command above.
-
 With vmod-curl and the show function above in place, search for "curl" in the magento.vcl file and uncomment the affected lines. Then just restart Varnish and you should be good to go.
 
-**IMPORTANT!** If an apt-get upgrade also upgrades varnish, you *have* to recompile libvmod-curl again, using the whole procedure from `apt-get -b source varnish` and forward.
+Redis Configuration
+--
+```bash
+apt-get install libhiredis-dev
+git clone https://github.com/varnish/libvmod-curl.git
+cd libvmod-curl
+./autogen.sh
+./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
+make
+make install
+```
 
 FAQ
 ==

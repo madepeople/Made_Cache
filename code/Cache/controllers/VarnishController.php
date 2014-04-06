@@ -13,6 +13,13 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
      */
     public function esiAction()
     {
+        if (!$this->getRequest()->getHeader('Cookie')) {
+            // Skip writing the session (when using the Redis session backend)
+            // is there is no cookie header present. We still need to render
+            // the default blocks
+            Mage::register('skip_session_write', 1);
+        }
+
         $layoutHandles = explode(',', base64_decode($this->getRequest()->getParam('layout')));
         $blockName = base64_decode($this->getRequest()->getParam('block'));
         $misc = unserialize(base64_decode($this->getRequest()->getParam('misc')));

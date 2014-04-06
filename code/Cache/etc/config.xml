@@ -18,7 +18,7 @@
                 <varnish translate="label,description" module="cache">
                     <label>Varnish</label>
                     <description><![CDATA[Full page cache. Requires a configured Varnish daemon, see https://www.varnish-cache.org/]]></description>
-                    <tags/>
+                    <tags>FPC_VARNISH</tags>
                 </varnish>
             </types>
         </cache>
@@ -36,6 +36,15 @@
                     <layout>Made_Cache_Model_Layout</layout>
                 </rewrite>
             </core>
+            <!-- Uncomment the below if you want to use the bundled redis
+                 session handler. You can also paste it into your local.xml -->
+            <!--
+            <core_resource>
+                <rewrite>
+                    <session>Made_Cache_Redis_Session</session>
+                </rewrite>
+            </core_resource>
+            -->
         </models>
         <blocks>
             <cache>
@@ -256,16 +265,10 @@
             </general>
             <varnish>
                 <ttl>1w</ttl>
-                <nocache_routes><![CDATA[customer
-checkout
-streamcheckout
-onestepcheckout
-ajaxcart
-catalog/product_compare
-wishlist
-moneybookers
-paypal]]>
-                </nocache_routes>
+                <cache_routes><![CDATA[catalog
+review
+cms]]>
+                </cache_routes>
                 <servers>127.0.0.1</servers>
                 <debug>0</debug>
             </varnish>
