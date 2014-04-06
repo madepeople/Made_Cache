@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * Experimental redis cache implementation that uses SCAN for performance,
+ * and also keeps an expiry on every key to make it easier to calculate
+ * larger amounts of visitors when caching carts, vs the amount of memory.
+ *
+ * @author jonathan@madepeople.se
+ */
+
 require 'Predis/Autoloader.php';
 Predis\Autoloader::register(true);
 
