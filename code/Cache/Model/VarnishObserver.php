@@ -51,8 +51,11 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
+        $websiteStoreCode = Mage::app()->getWebsite()->getCode()
+            . '_' . Mage::app()->getStore()->getCode();
+
         $response = $controller->getResponse();
-        $response->setHeader('X-Magento-Store', Mage::app()->getStore()->getCode(), true);
+        $response->setHeader('X-Magento-Store', $websiteStoreCode, true);
         $response->setHeader('X-Made-Cache-Ttl', $ttl, true);
     }
 
