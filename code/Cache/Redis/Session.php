@@ -4,6 +4,10 @@
  *
  * @author jonathan@madepeople.se
  */
+
+require_once 'Predis/Autoloader.php';
+Predis\Autoloader::register(true);
+
 class Made_Cache_Redis_Session
     implements Zend_Session_SaveHandler_Interface
 {

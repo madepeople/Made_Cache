@@ -8,7 +8,7 @@
  * @author jonathan@madepeople.se
  */
 
-require 'Predis/Autoloader.php';
+require_once 'Predis/Autoloader.php';
 Predis\Autoloader::register(true);
 
 class Made_Cache_Redis_Backend extends Zend_Cache_Backend
