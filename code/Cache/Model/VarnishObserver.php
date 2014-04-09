@@ -54,8 +54,17 @@ class Made_Cache_Model_VarnishObserver
         $websiteStoreCode = Mage::app()->getWebsite()->getCode()
             . '_' . Mage::app()->getStore()->getCode();
 
+        $cookieModel = Mage::getSingleton('core/cookie');
+        $cookieString = array(
+            'magento_store=' . $websiteStoreCode,
+            'expires=' . date("l, d-M-y H:i:s T", time()+$cookieModel->getLifetime()),
+            'path=' . $cookieModel->getPath(),
+            'domain=' . $cookieModel->getDomain(),
+            'httponly',
+        );
+
         $response = $controller->getResponse();
-        $response->setHeader('X-Magento-Store', $websiteStoreCode, true);
+        $response->setHeader('X-Magento-Store', join('; ', $cookieString), true);
         $response->setHeader('X-Made-Cache-Ttl', $ttl, true);
     }
 
