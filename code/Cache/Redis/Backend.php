@@ -85,8 +85,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $metadataKey = $this->_metadataPrefix . $id;
         $metadata['mtime'] = time();
-        $metadata['tags'] = json_encode($metadata['tags']);
-        $client->set($metadataKey, gzcompress(json_encode($metadata), 6));
+        $client->set($metadataKey, gzcompress(serialize($metadata), 6));
         $client->expireat($metadataKey, $metadata['expire']);
     }
 
@@ -191,11 +190,12 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $metadataKey = $this->_metadataPrefix . $id;
         $result = $client->get($metadataKey);
         if (!empty($result)) {
-            $result = gzuncompress($result);
-            $result = json_decode($result);
-            $result['tags'] = json_decode($result['tags']);
+            $result = @gzuncompress($result);
+            if ($result === false) {
+                return false;
+            }
         }
-        return $result;
+        return unserialize($result);
     }
 
     /**
@@ -261,8 +261,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if ($data === null) {
             return false;
         }
-        $data = gzuncompress($data);
-        return json_decode($data);
+        $data = @gzuncompress($data);
+        if ($data === false) {
+            return false;
+        }
+        return $data;
     }
 
     /**
@@ -285,8 +288,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             // It failed at EXISTS
             return false;
         }
-        $metadata = gzuncompress($result[1]);
-        $metadata = json_decode($metadata);
+        $metadata = @gzuncompress($result[1]);
+        if ($metadata === false) {
+            return false;
+        }
+        $metadata = unserialize($metadata);
         if (!is_array($metadata) || empty($metadata['mtime'])) {
             return false;
         }
@@ -309,15 +315,13 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $pipe = $client->pipeline();
-        $pipe->set($id, gzcompress(json_encode($data), 6));
+        $pipe->set($id, gzcompress($data, 6));
         $lifetime = $this->getLifetime($specificLifetime);
-        if ($lifetime !== null) {
-            // Automatic key expiration
-            $lifetime += time();
-            $pipe->expireat($id, $lifetime);
-        } else {
-            $pipe->expire($id, $this->_defaultExpiry);
+        if ($lifetime === null) {
+            $lifetime = $this->_defaultExpiry;
         }
+        $lifetime += time();
+        $pipe->expireat($id, $lifetime);
         $pipe->sadd($this->_keySet, $id);
         $pipe->expire($this->_keySet, $this->_defaultExpiry);
         foreach ($tags as $tag) {
