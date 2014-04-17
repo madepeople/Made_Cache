@@ -19,7 +19,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => '2.5',
+        'timeout' => '5',
         'prefix' => 'mc:',
         'database' => 0,
     );
@@ -64,7 +64,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $keys = array();
         $cursor = 0;
         while ((list ($cursor, $content) = $client->sscan($setName, $cursor))
-                && !empty($content)) {
+            && !empty($content)) {
             $keys = array_merge($keys, $content);
 
             if ($cursor === 0) {
@@ -86,7 +86,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $metadataKey = $this->_metadataPrefix . $id;
         $metadata['mtime'] = time();
         $metadata['tags'] = json_encode($metadata['tags']);
-        $client->hmset($metadataKey, $metadata);
+        $client->set($metadataKey, gzcompress(json_encode($metadata), 6));
         $client->expireat($metadataKey, $metadata['expire']);
     }
 
@@ -189,8 +189,12 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $metadataKey = $this->_metadataPrefix . $id;
-        $result = $client->hmget($metadataKey);
-        $result['tags'] = json_decode($result['tags']);
+        $result = $client->get($metadataKey);
+        if (!empty($result)) {
+            $result = gzuncompress($result);
+            $result = json_decode($result);
+            $result['tags'] = json_decode($result['tags']);
+        }
         return $result;
     }
 
@@ -257,7 +261,8 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if ($data === null) {
             return false;
         }
-        return $data;
+        $data = gzuncompress($data);
+        return json_decode($data);
     }
 
     /**
@@ -272,7 +277,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $pipe = $client->pipeline();
         if ($pipe->exists($id)) {
             $metadataKey = $this->_metadataPrefix . $id;
-            $pipe->hmget($metadataKey);
+            $pipe->get($metadataKey);
         }
         $result = $pipe->execute();
 
@@ -280,7 +285,8 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             // It failed at EXISTS
             return false;
         }
-        $metadata = $result[1];
+        $metadata = gzuncompress($result[1]);
+        $metadata = json_decode($metadata);
         if (!is_array($metadata) || empty($metadata['mtime'])) {
             return false;
         }
@@ -303,7 +309,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $pipe = $client->pipeline();
-        $pipe->set($id, $data);
+        $pipe->set($id, gzcompress(json_encode($data), 6));
         $lifetime = $this->getLifetime($specificLifetime);
         if ($lifetime !== null) {
             // Automatic key expiration
