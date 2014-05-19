@@ -10,6 +10,13 @@
         }
     ],
     "require": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon/magento-composer-installer": "*",
+        "firegento/psr0autoloader": "*"
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "http://packages.firegento.com"
+        }
+    ]
 }
