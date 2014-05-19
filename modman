@@ -1,5 +1,5 @@
 code/Cache/*                app/code/community/Made/Cache/
-lib/predis/lib/*            lib/
+#lib/predis/lib/*            lib/
 frontend/layout/*           app/design/frontend/base/default/layout/
 Made_Cache.xml              app/etc/modules/Made_Cache.xml
 package.xml                 var/connect/Made_Cache.xml

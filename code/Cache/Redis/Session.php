@@ -4,6 +4,10 @@
  *
  * @author jonathan@madepeople.se
  */
+
+require_once 'Predis/Autoloader.php';
+Predis\Autoloader::register(true);
+
 class Made_Cache_Redis_Session
     implements Zend_Session_SaveHandler_Interface
 {
@@ -12,7 +16,7 @@ class Made_Cache_Redis_Session
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => '2.5',
+        'timeout' => '5',
         'prefix' => '',
         'database' => 1,
     );
@@ -145,7 +149,7 @@ class Made_Cache_Redis_Session
             return '';
         }
 
-        return $result;
+        return gzuncompress($result);
     }
 
     /**
@@ -160,7 +164,7 @@ class Made_Cache_Redis_Session
         $client = $this->_getClient();
         $client->watch($id);
         $client->multi();
-        $client->set($id, $data);
+        $client->set($id, gzcompress($data, 6));
         $client->expire($id, time()+$this->_maxLifetime);
         $result = $client->exec();
         if (empty($result[0])) {
