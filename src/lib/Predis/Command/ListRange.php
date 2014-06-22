@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/lrange
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ListRange extends Command
+class ListRange extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

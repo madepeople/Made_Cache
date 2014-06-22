@@ -12,8 +12,8 @@
 namespace Predis;
 
 /**
- * Exception class thrown when trying to use features not supported by certain
- * classes or abstractions of Predis.
+ * Exception class generated when trying to use features not
+ * supported by certain classes or abstractions.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */

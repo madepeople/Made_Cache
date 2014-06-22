@@ -11,152 +11,104 @@
 
 namespace Predis;
 
-use InvalidArgumentException;
-use UnexpectedValueException;
 use Predis\Command\CommandInterface;
-use Predis\Command\RawCommand;
-use Predis\Command\ScriptCommand;
-use Predis\Configuration\Options;
-use Predis\Configuration\OptionsInterface;
+use Predis\Command\ScriptedCommand;
+use Predis\Connection\AggregatedConnectionInterface;
 use Predis\Connection\ConnectionInterface;
-use Predis\Connection\AggregateConnectionInterface;
-use Predis\Connection\ParametersInterface;
-use Predis\Monitor\Consumer as MonitorConsumer;
-use Predis\Pipeline\Pipeline;
-use Predis\PubSub\Consumer as PubSubConsumer;
-use Predis\Response\ErrorInterface as ErrorResponseInterface;
-use Predis\Response\ResponseInterface;
-use Predis\Response\ServerException;
-use Predis\Transaction\MultiExec as MultiExecTransaction;
+use Predis\Connection\ConnectionFactoryInterface;
+use Predis\Monitor\MonitorContext;
+use Predis\Option\ClientOptions;
+use Predis\Option\ClientOptionsInterface;
+use Predis\Pipeline\PipelineContext;
+use Predis\PubSub\PubSubContext;
+use Predis\Transaction\MultiExecContext;
 
 /**
- * Client class used for connecting and executing commands on Redis.
- *
- * This is the main high-level abstraction of Predis upon which various other
- * abstractions are built. Internally it aggregates various other classes each
- * one with its own responsibility and scope.
+ * Main class that exposes the most high-level interface to interact with Redis.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
 class Client implements ClientInterface
 {
-    const VERSION = '1.0.0-dev';
+    const VERSION = '0.8.6-dev';
 
-    protected $connection;
-    protected $options;
+    private $options;
     private $profile;
+    private $connection;
 
     /**
-     * @param mixed $parameters Connection parameters for one or more servers.
-     * @param mixed $options    Options to configure some behaviours of the client.
+     * Initializes a new client with optional connection parameters and client options.
+     *
+     * @param mixed $parameters Connection parameters for one or multiple servers.
+     * @param mixed $options    Options that specify certain behaviours for the client.
      */
     public function __construct($parameters = null, $options = null)
     {
-        $this->options = $this->createOptions($options ?: array());
-        $this->connection = $this->createConnection($parameters ?: array());
+        $this->options = $this->filterOptions($options);
         $this->profile = $this->options->profile;
+        $this->connection = $this->initializeConnection($parameters);
     }
 
     /**
-     * Creates a new instance of Predis\Configuration\Options from different
-     * types of arguments or simply returns the passed argument if it is an
-     * instance of Predis\Configuration\OptionsInterface.
+     * Creates an instance of Predis\Option\ClientOptions from various types of
+     * arguments (string, array, Predis\Profile\ServerProfile) or returns the
+     * passed object if it is an instance of Predis\Option\ClientOptions.
      *
-     * @param  mixed            $options Client options.
-     * @return OptionsInterface
+     * @param  mixed         $options Client options.
+     * @return ClientOptions
      */
-    protected function createOptions($options)
+    protected function filterOptions($options)
     {
-        if (is_array($options)) {
-            return new Options($options);
+        if (!isset($options)) {
+            return new ClientOptions();
         }
 
-        if ($options instanceof OptionsInterface) {
+        if (is_array($options)) {
+            return new ClientOptions($options);
+        }
+
+        if ($options instanceof ClientOptionsInterface) {
             return $options;
         }
 
-        throw new InvalidArgumentException("Invalid type for client options.");
+        throw new \InvalidArgumentException("Invalid type for client options");
     }
 
     /**
-     * Creates single or aggregate connections from different types of arguments
-     * (string, array) or returns the passed argument if it is an instance of a
-     * class implementing Predis\Connection\ConnectionInterface.
+     * Initializes one or multiple connection (cluster) objects from various
+     * types of arguments (string, array) or returns the passed object if it
+     * implements Predis\Connection\ConnectionInterface.
      *
-     * Accepted types for connection parameters are:
-     *
-     *  - Instance of Predis\Connection\ConnectionInterface.
-     *  - Instance of Predis\Connection\ParametersInterface.
-     *  - Array
-     *  - String
-     *  - Callable
-     *
-     * @param  mixed               $parameters Connection parameters or connection instance.
+     * @param  mixed               $parameters Connection parameters or instance.
      * @return ConnectionInterface
      */
-    protected function createConnection($parameters)
+    protected function initializeConnection($parameters)
     {
         if ($parameters instanceof ConnectionInterface) {
             return $parameters;
         }
 
-        if ($parameters instanceof ParametersInterface || is_string($parameters)) {
-            return $this->options->connections->create($parameters);
-        }
-
-        if (is_array($parameters)) {
-            if (!isset($parameters[0])) {
-                return $this->options->connections->create($parameters);
-            }
-
+        if (is_array($parameters) && isset($parameters[0])) {
             $options = $this->options;
+            $replication = isset($options->replication) && $options->replication;
+            $connection = $options->{$replication ? 'replication' : 'cluster'};
 
-            if ($options->defined('aggregate')) {
-                $initializer = $this->getConnectionInitializerWrapper($options->aggregate);
-                $connection = $initializer($parameters, $options);
-            } else {
-                if ($options->defined('replication') && $replication = $options->replication) {
-                    $connection = $replication;
-                } else {
-                    $connection = $options->cluster;
-                }
-
-                $options->connections->aggregate($connection, $parameters);
-            }
-
-            return $connection;
+            return $options->connections->createAggregated($connection, $parameters);
         }
 
         if (is_callable($parameters)) {
-            $initializer = $this->getConnectionInitializerWrapper($parameters);
-            $connection = $initializer($this->options);
-
-            return $connection;
-        }
-
-        throw new InvalidArgumentException('Invalid type for connection parameters.');
-    }
-
-    /**
-     * Wraps a callable to make sure that its returned value represents a valid
-     * connection type.
-     *
-     * @param  mixed    $callable
-     * @return \Closure
-     */
-    protected function getConnectionInitializerWrapper($callable)
-    {
-        return function () use ($callable) {
-            $connection = call_user_func_array($callable, func_get_args());
+            $connection = call_user_func($parameters, $this->options);
 
             if (!$connection instanceof ConnectionInterface) {
-                throw new UnexpectedValueException(
-                    'The callable connection initializer returned an invalid type.'
+                throw new \InvalidArgumentException(
+                    'Callable parameters must return instances of Predis\Connection\ConnectionInterface'
                 );
             }
 
             return $connection;
-        };
+        }
+
+        return $this->options->connections->create($parameters);
     }
 
     /**
@@ -176,24 +128,34 @@ class Client implements ClientInterface
     }
 
     /**
-     * Creates a new client instance for the specified connection ID or alias,
-     * only when working with an aggregate connection (cluster, replication).
-     * The new client instances uses the same options of the original one.
+     * Returns the connection factory object used by the client.
      *
-     * @param  string $connectionID Identifier of a connection.
+     * @return ConnectionFactoryInterface
+     */
+    public function getConnectionFactory()
+    {
+        return $this->options->connections;
+    }
+
+    /**
+     * Returns a new instance of a client for the specified connection when the
+     * client is connected to a cluster. The new instance will use the same
+     * options of the original client.
+     *
+     * @param  string $connectionID Identifier for the connection.
      * @return Client
      */
     public function getClientFor($connectionID)
     {
         if (!$connection = $this->getConnectionById($connectionID)) {
-            throw new InvalidArgumentException("Invalid connection ID: $connectionID.");
+            throw new \InvalidArgumentException("Invalid connection ID: '$connectionID'");
         }
 
         return new static($connection, $this->options);
     }
 
     /**
-     * Opens the underlying connection and connects to the server.
+     * Opens the connection to the server.
      */
     public function connect()
     {
@@ -201,7 +163,7 @@ class Client implements ClientInterface
     }
 
     /**
-     * Closes the underlying connection and disconnects from the server.
+     * Disconnects from the server.
      */
     public function disconnect()
     {
@@ -209,10 +171,9 @@ class Client implements ClientInterface
     }
 
     /**
-     * Closes the underlying connection and disconnects from the server.
+     * Disconnects from the server.
      *
-     * This is the same as `Client::disconnect()` as it does not actually send
-     * the `QUIT` command to Redis, but simply closes the connection.
+     * This method is an alias of disconnect().
      */
     public function quit()
     {
@@ -220,9 +181,10 @@ class Client implements ClientInterface
     }
 
     /**
-     * Returns the current state of the underlying connection.
+     * Checks if the underlying connection is connected to Redis.
      *
-     * @return bool
+     * @return bool True means that the connection is open.
+     *              False means that the connection is closed.
      */
     public function isConnected()
     {
@@ -238,51 +200,18 @@ class Client implements ClientInterface
     }
 
     /**
-     * Retrieves the specified connection from the aggregate connection when the
-     * client is in cluster or replication mode.
+     * Retrieves a single connection out of an aggregated connections instance.
      *
-     * @param  string                             $connectionID Index or alias of the single connection.
-     * @return Connection\NodeConnectionInterface
+     * @param  string                               $connectionId Index or alias of the single connection.
+     * @return Connection\SingleConnectionInterface
      */
-    public function getConnectionById($connectionID)
+    public function getConnectionById($connectionId)
     {
-        if (!$this->connection instanceof AggregateConnectionInterface) {
-            throw new NotSupportedException(
-                'Retrieving connections by ID is supported only by aggregate connections.'
-            );
+        if (!$this->connection instanceof AggregatedConnectionInterface) {
+            throw new NotSupportedException('Retrieving connections by ID is supported only when using aggregated connections');
         }
 
-        return $this->connection->getConnectionById($connectionID);
-    }
-
-    /**
-     * Executes a command without filtering its arguments, parsing the response,
-     * applying any prefix to keys or throwing exceptions on Redis errors even
-     * regardless of client options.
-     *
-     * It is possibile to indentify Redis error responses from normal responses
-     * using the second optional argument which is populated by reference.
-     *
-     * @param  array $arguments Command arguments as defined by the command signature.
-     * @param  bool  $error     Set to TRUE when Redis returned an error response.
-     * @return mixed
-     */
-    public function executeRaw(array $arguments, &$error = null)
-    {
-        $error = false;
-
-        $command = new RawCommand($arguments);
-        $response = $this->connection->executeCommand($command);
-
-        if ($response instanceof ResponseInterface) {
-            if ($response instanceof ErrorResponseInterface) {
-                $error = true;
-            }
-
-            return (string) $response;
-        }
-
-        return $response;
+        return $this->connection->getConnectionById($connectionId);
     }
 
     /**
@@ -316,9 +245,9 @@ class Client implements ClientInterface
     {
         $response = $this->connection->executeCommand($command);
 
-        if ($response instanceof ResponseInterface) {
-            if ($response instanceof ErrorResponseInterface) {
-                $response = $this->onErrorResponse($command, $response);
+        if ($response instanceof ResponseObjectInterface) {
+            if ($response instanceof ResponseErrorInterface) {
+                $response = $this->onResponseError($command, $response);
             }
 
             return $response;
@@ -330,19 +259,19 @@ class Client implements ClientInterface
     /**
      * Handles -ERR responses returned by Redis.
      *
-     * @param  CommandInterface       $command  Redis command that generated the error.
-     * @param  ErrorResponseInterface $response Instance of the error response.
+     * @param  CommandInterface       $command  The command that generated the error.
+     * @param  ResponseErrorInterface $response The error response instance.
      * @return mixed
      */
-    protected function onErrorResponse(CommandInterface $command, ErrorResponseInterface $response)
+    protected function onResponseError(CommandInterface $command, ResponseErrorInterface $response)
     {
-        if ($command instanceof ScriptCommand && $response->getErrorType() === 'NOSCRIPT') {
+        if ($command instanceof ScriptedCommand && $response->getErrorType() === 'NOSCRIPT') {
             $eval = $this->createCommand('eval');
             $eval->setRawArguments($command->getEvalArguments());
 
             $response = $this->executeCommand($eval);
 
-            if (!$response instanceof ResponseInterface) {
+            if (!$response instanceof ResponseObjectInterface) {
                 $response = $command->parseResponse($response);
             }
 
@@ -357,25 +286,24 @@ class Client implements ClientInterface
     }
 
     /**
-     * Executes the specified initializer method on `$this` by adjusting the
-     * actual invokation depending on the arity (0, 1 or 2 arguments). This is
-     * simply an utility method to create Redis contexts instances since they
-     * follow a common initialization path.
+     * Calls the specified initializer method on $this with 0, 1 or 2 arguments.
      *
-     * @param  string $initializer Method name.
-     * @param  array  $argv        Arguments for the method.
+     * TODO: Invert $argv and $initializer.
+     *
+     * @param  array  $argv        Arguments for the initializer.
+     * @param  string $initializer The initializer method.
      * @return mixed
      */
-    private function sharedContextFactory($initializer, $argv = null)
+    private function sharedInitializer($argv, $initializer)
     {
         switch (count($argv)) {
             case 0:
                 return $this->$initializer();
 
             case 1:
-                return is_array($argv[0])
-                    ? $this->$initializer($argv[0])
-                    : $this->$initializer(null, $argv[0]);
+                list($arg0) = $argv;
+
+                return is_array($arg0) ? $this->$initializer($arg0) : $this->$initializer(null, $arg0);
 
             case 2:
                 list($arg0, $arg1) = $argv;
@@ -391,92 +319,128 @@ class Client implements ClientInterface
      * Creates a new pipeline context and returns it, or returns the results of
      * a pipeline executed inside the optionally provided callable object.
      *
-     * @param  mixed          ... Array of options, a callable for execution, or both.
-     * @return Pipeline|array
+     * @param  mixed                 ... Options for the context, a callable object, or both.
+     * @return PipelineContext|array
      */
     public function pipeline(/* arguments */)
     {
-        return $this->sharedContextFactory('createPipeline', func_get_args());
+        return $this->sharedInitializer(func_get_args(), 'initPipeline');
     }
 
     /**
-     * Actual pipeline context initializer method.
+     * Pipeline context initializer.
      *
-     * @param  array          $options  Options for the context.
-     * @param  mixed          $callable Optional callable used to execute the context.
-     * @return Pipeline|array
+     * @param  array                 $options  Options for the context.
+     * @param  mixed                 $callable Optional callable object used to execute the context.
+     * @return PipelineContext|array
      */
-    protected function createPipeline(array $options = null, $callable = null)
+    protected function initPipeline(Array $options = null, $callable = null)
     {
-        if (isset($options['atomic']) && $options['atomic']) {
-            $class = 'Predis\Pipeline\Atomic';
-        } elseif (isset($options['fire-and-forget']) && $options['fire-and-forget']) {
-            $class = 'Predis\Pipeline\FireAndForget';
-        } else {
-            $class = 'Predis\Pipeline\Pipeline';
+        $executor = isset($options['executor']) ? $options['executor'] : null;
+
+        if (is_callable($executor)) {
+            $executor = call_user_func($executor, $this, $options);
         }
 
-        $pipeline = new $class($this);
+        $pipeline = new PipelineContext($this, $executor);
+        $replies  = $this->pipelineExecute($pipeline, $callable);
 
-        if (isset($callable)) {
-            return $pipeline->execute($callable);
-        }
-
-        return $pipeline;
+        return $replies;
     }
 
     /**
-     * Creates a new transaction context and returns it, or returns the results
-     * of a transaction executed inside the optionally provided callable object.
+     * Executes a pipeline context when a callable object is passed.
      *
-     * @param  mixed                      ... Array of options, a callable for execution, or both.
-     * @return MultiExecTransaction|array
+     * @param  PipelineContext       $pipeline Pipeline context instance.
+     * @param  mixed                 $callable Optional callable object used to execute the context.
+     * @return PipelineContext|array
+     */
+    private function pipelineExecute(PipelineContext $pipeline, $callable)
+    {
+        return isset($callable) ? $pipeline->execute($callable) : $pipeline;
+    }
+
+    /**
+     * Creates a new transaction context and returns it, or returns the results of
+     * a transaction executed inside the optionally provided callable object.
+     *
+     * @deprecated You should start using the new Client::transaction() method
+     *             as it will replace Client::multiExec() in the next major
+     *             version of the library.
+     *
+     * @param  mixed                  ... Options for the context, a callable object, or both.
+     * @return MultiExecContext|array
+     */
+    public function multiExec(/* arguments */)
+    {
+        return $this->sharedInitializer(func_get_args(), 'initMultiExec');
+    }
+
+    /**
+     * Creates a new transaction context and returns it, or returns the results of
+     * a transaction executed inside the optionally provided callable object.
+     *
+     * @param  mixed                  ... Options for the context, a callable object, or both.
+     * @return MultiExecContext|array
      */
     public function transaction(/* arguments */)
     {
-        return $this->sharedContextFactory('createTransaction', func_get_args());
+        return $this->sharedInitializer(func_get_args(), 'initMultiExec');
     }
 
     /**
-     * Actual transaction context initializer method.
+     * Transaction context initializer.
      *
-     * @param  array                      $options  Options for the context.
-     * @param  mixed                      $callable Optional callable used to execute the context.
-     * @return MultiExecTransaction|array
+     * @param  array                  $options  Options for the context.
+     * @param  mixed                  $callable Optional callable object used to execute the context.
+     * @return MultiExecContext|array
      */
-    protected function createTransaction(array $options = null, $callable = null)
+    protected function initMultiExec(Array $options = null, $callable = null)
     {
-        $transaction = new MultiExecTransaction($this, $options);
+        $transaction = new MultiExecContext($this, $options ?: array());
 
-        if (isset($callable)) {
-            return $transaction->execute($callable);
-        }
-
-        return $transaction;
+        return isset($callable) ? $transaction->execute($callable) : $transaction;
     }
 
     /**
-     * Creates a new publis/subscribe context and returns it, or starts its loop
+     * Creates a new Publish / Subscribe context and returns it, or executes it
      * inside the optionally provided callable object.
      *
-     * @param  mixed               ... Array of options, a callable for execution, or both.
-     * @return PubSubConsumer|NULL
+     * @deprecated This method will change in the next major release to support
+     *             the new PUBSUB command introduced in Redis 2.8. Please use
+     *             Client::pubSubLoop() to create Predis\PubSub\PubSubContext
+     *             instances from now on.
+     *
+     * @param  mixed               ... Options for the context, a callable object, or both.
+     * @return PubSubContext|array
+     */
+    public function pubSub(/* arguments */)
+    {
+        return call_user_func_array(array($this, 'pubSubLoop'), func_get_args());
+    }
+
+    /**
+     * Creates a new Publish / Subscribe context and returns it, or executes it
+     * inside the optionally provided callable object.
+     *
+     * @param  mixed               ... Options for the context, a callable object, or both.
+     * @return PubSubContext|array
      */
     public function pubSubLoop(/* arguments */)
     {
-        return $this->sharedContextFactory('createPubSub', func_get_args());
+        return $this->sharedInitializer(func_get_args(), 'initPubSub');
     }
 
     /**
-     * Actual publish/subscribe context initializer method.
+     * Publish / Subscribe context initializer.
      *
-     * @param  array               $options  Options for the context.
-     * @param  mixed               $callable Optional callable used to execute the context.
-     * @return PubSubConsumer|NULL
+     * @param  array         $options  Options for the context.
+     * @param  mixed         $callable Optional callable object used to execute the context.
+     * @return PubSubContext
      */
-    protected function createPubSub(array $options = null, $callable = null)
+    protected function initPubSub(Array $options = null, $callable = null)
     {
-        $pubsub = new PubSubConsumer($this, $options);
+        $pubsub = new PubSubContext($this, $options);
 
         if (!isset($callable)) {
             return $pubsub;
@@ -484,18 +448,18 @@ class Client implements ClientInterface
 
         foreach ($pubsub as $message) {
             if (call_user_func($callable, $pubsub, $message) === false) {
-                $pubsub->stop();
+                $pubsub->closeContext();
             }
         }
     }
 
     /**
-     * Creates a new monitor consumer and returns it.
+     * Returns a new monitor context.
      *
-     * @return MonitorConsumer
+     * @return MonitorContext
      */
     public function monitor()
     {
-        return new MonitorConsumer($this);
+        return new MonitorContext($this);
     }
 }

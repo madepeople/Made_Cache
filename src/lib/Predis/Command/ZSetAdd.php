@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/zadd
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetAdd extends Command
+class ZSetAdd extends PrefixableCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class ZSetAdd extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 2 && is_array($arguments[1])) {
             $flattened = array($arguments[0]);

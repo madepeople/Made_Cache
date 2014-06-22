@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/info
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ServerInfo extends Command
+class ServerInfo extends AbstractCommand
 {
     /**
      * {@inheritdoc}
@@ -46,12 +46,12 @@ class ServerInfo extends Command
     }
 
     /**
-     * Parses a single row of the response and returns the key-value pair.
+     * Parses single row of the reply buffer and returns the key-value pair.
      *
-     * @param  string $row Single row of the response.
+     * @param string $row Single row of the reply buffer.
      * @return array
      */
-    protected function parseRow($row)
+    public function parseRow($row)
     {
         list($k, $v) = explode(':', $row, 2);
 
@@ -62,14 +62,13 @@ class ServerInfo extends Command
         } else {
             $v = $this->parseDatabaseStats($v);
         }
-
         return array($k, $v);
     }
 
     /**
-     * Extracts the statistics of each logical DB from the string buffer.
+     * Parses the reply buffer and extracts the statistics of each logical DB.
      *
-     * @param  string $str Response buffer.
+     * @param  string $str Reply buffer.
      * @return array
      */
     protected function parseDatabaseStats($str)
@@ -85,9 +84,9 @@ class ServerInfo extends Command
     }
 
     /**
-     * Parses the response and extracts the allocation statistics.
+     * Parses the reply buffer and extracts the allocation statistics.
      *
-     * @param  string $str Response buffer.
+     * @param  string $str Reply buffer.
      * @return array
      */
     protected function parseAllocationStats($str)

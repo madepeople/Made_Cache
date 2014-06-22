@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/mset
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSetMultiple extends Command
+class StringSetMultiple extends AbstractCommand implements PrefixableCommandInterface
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class StringSetMultiple extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 1 && is_array($arguments[0])) {
             $flattenedKVs = array();
@@ -43,5 +43,13 @@ class StringSetMultiple extends Command
         }
 
         return $arguments;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prefixKeys($prefix)
+    {
+        PrefixHelpers::interleaved($this, $prefix);
     }
 }

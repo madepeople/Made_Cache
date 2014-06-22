@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/brpoplpush
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ListPopLastPushHeadBlocking extends Command
+class ListPopLastPushHeadBlocking extends AbstractCommand implements PrefixableCommandInterface
 {
     /**
      * {@inheritdoc}
@@ -23,5 +23,13 @@ class ListPopLastPushHeadBlocking extends Command
     public function getId()
     {
         return 'BRPOPLPUSH';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prefixKeys($prefix)
+    {
+        PrefixHelpers::skipLast($this, $prefix);
     }
 }

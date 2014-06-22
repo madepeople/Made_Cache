@@ -11,9 +11,6 @@
 
 namespace Predis\Command\Processor;
 
-use ArrayAccess;
-use ArrayIterator;
-use InvalidArgumentException;
 use Predis\Command\CommandInterface;
 
 /**
@@ -21,12 +18,12 @@ use Predis\Command\CommandInterface;
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ProcessorChain implements ArrayAccess, ProcessorInterface
+class ProcessorChain implements CommandProcessorChainInterface, \ArrayAccess
 {
     private $processors = array();
 
     /**
-     * @param array $processors List of instances of ProcessorInterface.
+     * @param array $processors List of instances of CommandProcessorInterface.
      */
     public function __construct($processors = array())
     {
@@ -38,7 +35,7 @@ class ProcessorChain implements ArrayAccess, ProcessorInterface
     /**
      * {@inheritdoc}
      */
-    public function add(ProcessorInterface $processor)
+    public function add(CommandProcessorInterface $processor)
     {
         $this->processors[] = $processor;
     }
@@ -46,7 +43,7 @@ class ProcessorChain implements ArrayAccess, ProcessorInterface
     /**
      * {@inheritdoc}
      */
-    public function remove(ProcessorInterface $processor)
+    public function remove(CommandProcessorInterface $processor)
     {
         if (false !== $index = array_search($processor, $this->processors, true)) {
             unset($this[$index]);
@@ -74,11 +71,11 @@ class ProcessorChain implements ArrayAccess, ProcessorInterface
     /**
      * Returns an iterator over the list of command processor in the chain.
      *
-     * @return ArrayIterator
+     * @return \ArrayIterator
      */
     public function getIterator()
     {
-        return new ArrayIterator($this->processors);
+        return new \ArrayIterator($this->processors);
     }
 
     /**
@@ -112,10 +109,10 @@ class ProcessorChain implements ArrayAccess, ProcessorInterface
      */
     public function offsetSet($index, $processor)
     {
-        if (!$processor instanceof ProcessorInterface) {
-            throw new InvalidArgumentException(
-                "A processor chain accepts only instances of ".
-                "'Predis\Command\Processor\ProcessorInterface'."
+        if (!$processor instanceof CommandProcessorInterface) {
+            throw new \InvalidArgumentException(
+                'A processor chain can hold only instances of classes implementing '.
+                'the Predis\Command\Processor\CommandProcessorInterface interface'
             );
         }
 

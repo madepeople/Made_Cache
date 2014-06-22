@@ -11,31 +11,31 @@
 
 namespace Predis\Connection;
 
-use InvalidArgumentException;
+use Predis\ClientException;
 use Predis\CommunicationException;
+use Predis\NotSupportedException;
 use Predis\Command\CommandInterface;
 use Predis\Protocol\ProtocolException;
 
 /**
- * Base class with the common logic used by connection classes to communicate
- * with Redis.
+ * Base class with the common logic used by connection classes to communicate with Redis.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-abstract class AbstractConnection implements NodeConnectionInterface
+abstract class AbstractConnection implements SingleConnectionInterface
 {
     private $resource;
     private $cachedId;
 
     protected $parameters;
-    protected $initCommands = array();
+    protected $initCmds = array();
 
     /**
-     * @param ParametersInterface $parameters Initialization parameters for the connection.
+     * @param ConnectionParametersInterface $parameters Parameters used to initialize the connection.
      */
-    public function __construct(ParametersInterface $parameters)
+    public function __construct(ConnectionParametersInterface $parameters)
     {
-        $this->parameters = $this->assertParameters($parameters);
+        $this->parameters = $this->checkParameters($parameters);
     }
 
     /**
@@ -50,22 +50,23 @@ abstract class AbstractConnection implements NodeConnectionInterface
     /**
      * Checks some of the parameters used to initialize the connection.
      *
-     * @param  ParametersInterface $parameters Initialization parameters for the connection.
-     * @return ParametersInterface
+     * @param  ConnectionParametersInterface $parameters Initialization parameters for the connection.
+     * @return ConnectionParametersInterface
      */
-    protected function assertParameters(ParametersInterface $parameters)
+    protected function checkParameters(ConnectionParametersInterface $parameters)
     {
-        $scheme = $parameters->scheme;
+        switch ($parameters->scheme) {
+            case 'unix':
+                if (!isset($parameters->path)) {
+                    throw new \InvalidArgumentException('Missing UNIX domain socket path');
+                }
 
-        if ($scheme !== 'tcp' && $scheme !== 'unix') {
-            throw new InvalidArgumentException("Invalid scheme: '$scheme'.");
+            case 'tcp':
+                return $parameters;
+
+            default:
+                throw new \InvalidArgumentException("Invalid scheme: {$parameters->scheme}");
         }
-
-        if ($scheme === 'unix' && !isset($parameters->path)) {
-            throw new InvalidArgumentException('Missing UNIX domain socket path.');
-        }
-
-        return $parameters;
     }
 
     /**
@@ -88,13 +89,11 @@ abstract class AbstractConnection implements NodeConnectionInterface
      */
     public function connect()
     {
-        if (!$this->isConnected()) {
-            $this->resource = $this->createResource();
-
-            return true;
+        if ($this->isConnected()) {
+            throw new ClientException('Connection already estabilished');
         }
 
-        return false;
+        $this->resource = $this->createResource();
     }
 
     /**
@@ -108,9 +107,9 @@ abstract class AbstractConnection implements NodeConnectionInterface
     /**
      * {@inheritdoc}
      */
-    public function addConnectCommand(CommandInterface $command)
+    public function pushInitCommand(CommandInterface $command)
     {
-        $this->initCommands[] = $command;
+        $this->initCmds[] = $command;
     }
 
     /**
@@ -118,7 +117,7 @@ abstract class AbstractConnection implements NodeConnectionInterface
      */
     public function executeCommand(CommandInterface $command)
     {
-        $this->writeRequest($command);
+        $this->writeCommand($command);
 
         return $this->readResponse($command);
     }
@@ -139,11 +138,7 @@ abstract class AbstractConnection implements NodeConnectionInterface
      */
     protected function onConnectionError($message, $code = null)
     {
-        CommunicationException::handle(
-            new ConnectionException(
-                $this, "$message [{$this->parameters->scheme}://{$this->getIdentifier()}]", $code
-            )
-        );
+        CommunicationException::handle(new ConnectionException($this, "$message [{$this->parameters->scheme}://{$this->getIdentifier()}]", $code));
     }
 
     /**
@@ -153,11 +148,25 @@ abstract class AbstractConnection implements NodeConnectionInterface
      */
     protected function onProtocolError($message)
     {
-        CommunicationException::handle(
-            new ProtocolException(
-                $this, "$message [{$this->parameters->scheme}://{$this->getIdentifier()}]"
-            )
-        );
+        CommunicationException::handle(new ProtocolException($this, "$message [{$this->parameters->scheme}://{$this->getIdentifier()}]"));
+    }
+
+    /**
+     * Helper method to handle not supported connection parameters.
+     *
+     * @param string $option     Name of the option.
+     * @param mixed  $parameters Parameters used to initialize the connection.
+     */
+    protected function onInvalidOption($option, $parameters = null)
+    {
+        $class = get_called_class();
+        $message = "Invalid option for connection $class: $option";
+
+        if (isset($parameters)) {
+            $message .= sprintf(' [%s => %s]', $option, $parameters->{$option});
+        }
+
+        throw new NotSupportedException($message);
     }
 
     /**
@@ -213,6 +222,6 @@ abstract class AbstractConnection implements NodeConnectionInterface
      */
     public function __sleep()
     {
-        return array('parameters', 'initCommands');
+        return array('parameters', 'initCmds');
     }
 }

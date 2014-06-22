@@ -13,14 +13,12 @@ namespace Predis\Command;
 
 /**
  * Defines an abstraction representing a Redis command.
- *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
 interface CommandInterface
 {
     /**
-     * Returns the ID of the Redis command. By convention, command identifiers
-     * must always be uppercase.
+     * Gets the ID of a Redis command.
      *
      * @return string
      */
@@ -45,14 +43,14 @@ interface CommandInterface
      *
      * @param array $arguments List of arguments.
      */
-    public function setArguments(array $arguments);
+    public function setArguments(Array $arguments);
 
     /**
      * Sets the raw arguments for the command without processing them.
      *
      * @param array $arguments List of arguments.
      */
-    public function setRawArguments(array $arguments);
+    public function setRawArguments(Array $arguments);
 
     /**
      * Gets the arguments of the command.
@@ -70,9 +68,9 @@ interface CommandInterface
     public function getArgument($index);
 
     /**
-     * Parses a raw response and returns a PHP object.
+     * Parses a reply buffer and returns a PHP object.
      *
-     * @param  string $data Binary string containing the whole response.
+     * @param  string $data Binary string containing the whole reply.
      * @return mixed
      */
     public function parseResponse($data);

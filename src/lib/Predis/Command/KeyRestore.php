@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/restore
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class KeyRestore extends Command
+class KeyRestore extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

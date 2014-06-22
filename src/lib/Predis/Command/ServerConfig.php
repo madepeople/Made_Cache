@@ -18,7 +18,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/config-rewrite
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ServerConfig extends Command
+class ServerConfig extends AbstractCommand
 {
     /**
      * {@inheritdoc}

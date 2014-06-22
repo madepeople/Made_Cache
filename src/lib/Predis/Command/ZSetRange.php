@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/zrange
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetRange extends Command
+class ZSetRange extends PrefixableCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class ZSetRange extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 4) {
             $lastType = gettype($arguments[3]);

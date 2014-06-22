@@ -14,7 +14,7 @@ namespace Predis\Transaction;
 use Predis\PredisException;
 
 /**
- * Exception class that identifies a MULTI / EXEC transaction aborted by Redis.
+ * Exception class that identifies MULTI / EXEC transactions aborted by Redis.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
@@ -23,11 +23,11 @@ class AbortedMultiExecException extends PredisException
     private $transaction;
 
     /**
-     * @param MultiExec $transaction Transaction that generated the exception.
-     * @param string    $message     Error message.
-     * @param int       $code        Error code.
+     * @param MultiExecContext $transaction Transaction that generated the exception.
+     * @param string           $message     Error message.
+     * @param int              $code        Error code.
      */
-    public function __construct(MultiExec $transaction, $message, $code = null)
+    public function __construct(MultiExecContext $transaction, $message, $code = null)
     {
         parent::__construct($message, $code);
         $this->transaction = $transaction;
@@ -36,7 +36,7 @@ class AbortedMultiExecException extends PredisException
     /**
      * Returns the transaction that generated the exception.
      *
-     * @return MultiExec
+     * @return MultiExecContext
      */
     public function getTransaction()
     {

@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/blpop
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ListPopFirstBlocking extends Command
+class ListPopFirstBlocking extends AbstractCommand implements PrefixableCommandInterface
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class ListPopFirstBlocking extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 2 && is_array($arguments[0])) {
             list($arguments, $timeout) = $arguments;
@@ -36,5 +36,13 @@ class ListPopFirstBlocking extends Command
         }
 
         return $arguments;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prefixKeys($prefix)
+    {
+        PrefixHelpers::skipLast($this, $prefix);
     }
 }

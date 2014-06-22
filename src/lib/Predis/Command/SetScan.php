@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/sscan
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class SetScan extends Command
+class SetScan extends PrefixableCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class SetScan extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 3 && is_array($arguments[2])) {
             $options = $this->prepareOptions(array_pop($arguments));

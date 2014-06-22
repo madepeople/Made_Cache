@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/exists
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class KeyExists extends Command
+class KeyExists extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

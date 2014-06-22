@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/pfadd
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class HyperLogLogAdd extends Command
+class HyperLogLogAdd extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

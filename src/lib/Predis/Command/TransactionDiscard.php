@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/discard
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class TransactionDiscard extends Command
+class TransactionDiscard extends AbstractCommand
 {
     /**
      * {@inheritdoc}

@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/srem
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class SetRemove extends Command
+class SetRemove extends PrefixableCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class SetRemove extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         return self::normalizeVariadic($arguments);
     }

@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/move
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class KeyMove extends Command
+class KeyMove extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

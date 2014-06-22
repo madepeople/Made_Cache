@@ -11,18 +11,17 @@
 
 namespace Predis\PubSub;
 
-use InvalidArgumentException;
 use Predis\ClientInterface;
 
 /**
  * Method-dispatcher loop built around the client-side abstraction of a Redis
- * PUB / SUB context.
+ * Publish / Subscribe context.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
 class DispatcherLoop
 {
-    private $pubsub;
+    private $pubSubContext;
 
     protected $callbacks;
     protected $defaultCallback;
@@ -34,7 +33,7 @@ class DispatcherLoop
     public function __construct(ClientInterface $client)
     {
         $this->callbacks = array();
-        $this->pubsub = $client->pubSubLoop();
+        $this->pubSubContext = $client->pubSubLoop();
     }
 
     /**
@@ -42,21 +41,21 @@ class DispatcherLoop
      *
      * @param mixed $callable A callback.
      */
-    protected function assertCallback($callable)
+    protected function validateCallback($callable)
     {
         if (!is_callable($callable)) {
-            throw new InvalidArgumentException('The given argument must be a callable object.');
+            throw new \InvalidArgumentException("A valid callable object must be provided");
         }
     }
 
     /**
-     * Returns the underlying PUB / SUB context.
+     * Returns the underlying Publish / Subscribe context.
      *
-     * @return Consumer
+     * @return PubSubContext
      */
-    public function getPubSubConsumer()
+    public function getPubSubContext()
     {
-        return $this->pubsub;
+        return $this->pubSubContext;
     }
 
     /**
@@ -67,7 +66,7 @@ class DispatcherLoop
     public function subscriptionCallback($callable = null)
     {
         if (isset($callable)) {
-            $this->assertCallback($callable);
+            $this->validateCallback($callable);
         }
 
         $this->subscriptionCallback = $callable;
@@ -82,7 +81,7 @@ class DispatcherLoop
     public function defaultCallback($callable = null)
     {
         if (isset($callable)) {
-            $this->assertCallback($callable);
+            $this->validateCallback($callable);
         }
 
         $this->subscriptionCallback = $callable;
@@ -98,9 +97,9 @@ class DispatcherLoop
     {
         $callbackName = $this->getPrefixKeys() . $channel;
 
-        $this->assertCallback($callback);
+        $this->validateCallback($callback);
         $this->callbacks[$callbackName] = $callback;
-        $this->pubsub->subscribe($channel);
+        $this->pubSubContext->subscribe($channel);
     }
 
     /**
@@ -114,7 +113,7 @@ class DispatcherLoop
 
         if (isset($this->callbacks[$callbackName])) {
             unset($this->callbacks[$callbackName]);
-            $this->pubsub->unsubscribe($channel);
+            $this->pubSubContext->unsubscribe($channel);
         }
     }
 
@@ -123,10 +122,10 @@ class DispatcherLoop
      */
     public function run()
     {
-        foreach ($this->pubsub as $message) {
+        foreach ($this->pubSubContext as $message) {
             $kind = $message->kind;
 
-            if ($kind !== Consumer::MESSAGE && $kind !== Consumer::PMESSAGE) {
+            if ($kind !== PubSubContext::MESSAGE && $kind !== PubSubContext::PMESSAGE) {
                 if (isset($this->subscriptionCallback)) {
                     $callback = $this->subscriptionCallback;
                     call_user_func($callback, $message);
@@ -150,17 +149,17 @@ class DispatcherLoop
      */
     public function stop()
     {
-        $this->pubsub->stop();
+        $this->pubSubContext->closeContext();
     }
 
     /**
-     * Return the prefix used for keys
+     * Return the prefix of the keys
      *
      * @return string
      */
     protected function getPrefixKeys()
     {
-        $options = $this->pubsub->getClient()->getOptions();
+        $options = $this->pubSubContext->getClient()->getOptions();
 
         if (isset($options->prefix)) {
             return $options->prefix->getPrefix();

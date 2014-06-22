@@ -11,9 +11,10 @@
 
 namespace Predis\Connection;
 
+use Predis\ResponseError;
+use Predis\ResponseQueued;
 use Predis\Command\CommandInterface;
-use Predis\Response\Error as ErrorResponse;
-use Predis\Response\Status as StatusResponse;
+use Predis\Iterator\MultiBulkResponseSimple;
 
 /**
  * Standard connection to Redis servers implemented on top of PHP's streams.
@@ -28,23 +29,34 @@ use Predis\Response\Status as StatusResponse;
  *  - async_connect: performs the connection asynchronously.
  *  - tcp_nodelay: enables or disables Nagle's algorithm for coalescing.
  *  - persistent: the connection is left intact after a GC collection.
+ *  - iterable_multibulk: multibulk replies treated as iterable objects.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
 class StreamConnection extends AbstractConnection
 {
+    private $mbiterable;
+
     /**
-     * Disconnects from the server and destroys the underlying resource when the
-     * garbage collector kicks in only if the connection has not been marked as
-     * persistent.
+     * {@inheritdoc}
+     */
+    public function __construct(ConnectionParametersInterface $parameters)
+    {
+        $this->mbiterable = (bool) $parameters->iterable_multibulk;
+
+        parent::__construct($parameters);
+    }
+
+    /**
+     * Disconnects from the server and destroys the underlying resource when
+     * PHP's garbage collector kicks in only if the connection has not been
+     * marked as persistent.
      */
     public function __destruct()
     {
-        if (isset($this->parameters->persistent) && $this->parameters->persistent) {
-            return;
+        if (isset($this->parameters) && !$this->parameters->persistent) {
+            $this->disconnect();
         }
-
-        $this->disconnect();
     }
 
     /**
@@ -52,19 +64,19 @@ class StreamConnection extends AbstractConnection
      */
     protected function createResource()
     {
-        $initializer = "{$this->parameters->scheme}StreamInitializer";
-        $resource = $this->$initializer($this->parameters);
+        $parameters = $this->parameters;
+        $initializer = "{$parameters->scheme}StreamInitializer";
 
-        return $resource;
+        return $this->$initializer($parameters);
     }
 
     /**
      * Initializes a TCP stream resource.
      *
-     * @param  ParametersInterface $parameters Initialization parameters for the connection.
+     * @param  ConnectionParametersInterface $parameters Parameters used to initialize the connection.
      * @return resource
      */
-    private function tcpStreamInitializer(ParametersInterface $parameters)
+    private function tcpStreamInitializer(ConnectionParametersInterface $parameters)
     {
         $uri = "tcp://{$parameters->host}:{$parameters->port}";
         $flags = STREAM_CLIENT_CONNECT;
@@ -103,10 +115,10 @@ class StreamConnection extends AbstractConnection
     /**
      * Initializes a UNIX stream resource.
      *
-     * @param  ParametersInterface $parameters Initialization parameters for the connection.
+     * @param  ConnectionParametersInterface $parameters Parameters used to initialize the connection.
      * @return resource
      */
-    private function unixStreamInitializer(ParametersInterface $parameters)
+    private function unixStreamInitializer(ConnectionParametersInterface $parameters)
     {
         $uri = "unix://{$parameters->path}";
         $flags = STREAM_CLIENT_CONNECT;
@@ -129,10 +141,10 @@ class StreamConnection extends AbstractConnection
      */
     public function connect()
     {
-        if (parent::connect() && $this->initCommands) {
-            foreach ($this->initCommands as $command) {
-                $this->executeCommand($command);
-            }
+        parent::connect();
+
+        if ($this->initCmds) {
+            $this->sendInitializationCommands();
         }
     }
 
@@ -148,12 +160,25 @@ class StreamConnection extends AbstractConnection
     }
 
     /**
-     * Performs a write operation over the stream of the buffer containing a
+     * Sends the initialization commands to Redis when the connection is opened.
+     */
+    private function sendInitializationCommands()
+    {
+        foreach ($this->initCmds as $command) {
+            $this->writeCommand($command);
+        }
+        foreach ($this->initCmds as $command) {
+            $this->readResponse($command);
+        }
+    }
+
+    /**
+     * Performs a write operation on the stream of the buffer containing a
      * command serialized with the Redis wire protocol.
      *
-     * @param string $buffer Representation of a command in the Redis wire protocol.
+     * @param string $buffer Redis wire protocol representation of a command.
      */
-    protected function write($buffer)
+    protected function writeBytes($buffer)
     {
         $socket = $this->getResource();
 
@@ -163,9 +188,8 @@ class StreamConnection extends AbstractConnection
             if ($length === $written) {
                 return;
             }
-
             if ($written === false || $written === 0) {
-                $this->onConnectionError('Error while writing bytes to the server.');
+                $this->onConnectionError('Error while writing bytes to the server');
             }
 
             $buffer = substr($buffer, $written);
@@ -178,22 +202,30 @@ class StreamConnection extends AbstractConnection
     public function read()
     {
         $socket = $this->getResource();
-        $chunk = fgets($socket);
+        $chunk  = fgets($socket);
 
         if ($chunk === false || $chunk === '') {
-            $this->onConnectionError('Error while reading line from the server.');
+            $this->onConnectionError('Error while reading line from the server');
         }
 
-        $prefix = $chunk[0];
+        $prefix  = $chunk[0];
         $payload = substr($chunk, 1, -2);
 
         switch ($prefix) {
             case '+':
-                return StatusResponse::get($payload);
+                switch ($payload) {
+                    case 'OK':
+                        return true;
+
+                    case 'QUEUED':
+                        return new ResponseQueued();
+
+                    default:
+                        return $payload;
+                }
 
             case '$':
                 $size = (int) $payload;
-
                 if ($size === -1) {
                     return null;
                 }
@@ -205,7 +237,7 @@ class StreamConnection extends AbstractConnection
                     $chunk = fread($socket, min($bytesLeft, 4096));
 
                     if ($chunk === false || $chunk === '') {
-                        $this->onConnectionError('Error while reading bytes from the server.');
+                        $this->onConnectionError('Error while reading bytes from the server');
                     }
 
                     $bulkData .= $chunk;
@@ -220,6 +252,9 @@ class StreamConnection extends AbstractConnection
                 if ($count === -1) {
                     return null;
                 }
+                if ($this->mbiterable) {
+                    return new MultiBulkResponseSimple($this, $count);
+                }
 
                 $multibulk = array();
 
@@ -233,25 +268,25 @@ class StreamConnection extends AbstractConnection
                 return (int) $payload;
 
             case '-':
-                return new ErrorResponse($payload);
+                return new ResponseError($payload);
 
             default:
-                $this->onProtocolError("Unknown response prefix: '$prefix'.");
+                $this->onProtocolError("Unknown prefix: '$prefix'");
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function writeRequest(CommandInterface $command)
+    public function writeCommand(CommandInterface $command)
     {
-        $commandID = $command->getId();
+        $commandId = $command->getId();
         $arguments = $command->getArguments();
 
-        $cmdlen = strlen($commandID);
+        $cmdlen = strlen($commandId);
         $reqlen = count($arguments) + 1;
 
-        $buffer = "*{$reqlen}\r\n\${$cmdlen}\r\n{$commandID}\r\n";
+        $buffer = "*{$reqlen}\r\n\${$cmdlen}\r\n{$commandId}\r\n";
 
         for ($i = 0, $reqlen--; $i < $reqlen; $i++) {
             $argument = $arguments[$i];
@@ -259,6 +294,14 @@ class StreamConnection extends AbstractConnection
             $buffer .= "\${$arglen}\r\n{$argument}\r\n";
         }
 
-        $this->write($buffer);
+        $this->writeBytes($buffer);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function __sleep()
+    {
+        return array_merge(parent::__sleep(), array('mbiterable'));
     }
 }

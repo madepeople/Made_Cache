@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/auth
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ConnectionAuth extends Command
+class ConnectionAuth extends AbstractCommand
 {
     /**
      * {@inheritdoc}

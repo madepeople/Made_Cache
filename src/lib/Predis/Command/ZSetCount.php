@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/zcount
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetCount extends Command
+class ZSetCount extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

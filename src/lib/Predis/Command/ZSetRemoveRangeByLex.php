@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/zremrangebylex
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetRemoveRangeByLex extends Command
+class ZSetRemoveRangeByLex extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

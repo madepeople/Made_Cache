@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/sadd
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class SetAdd extends Command
+class SetAdd extends PrefixableCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class SetAdd extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         return self::normalizeVariadic($arguments);
     }

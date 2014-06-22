@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/set
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSet extends Command
+class StringSet extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

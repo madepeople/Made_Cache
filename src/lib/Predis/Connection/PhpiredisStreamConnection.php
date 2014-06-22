@@ -12,20 +12,22 @@
 namespace Predis\Connection;
 
 use Predis\NotSupportedException;
+use Predis\ResponseError;
+use Predis\ResponseQueued;
 use Predis\Command\CommandInterface;
-use Predis\Response\Error as ErrorResponse;
-use Predis\Response\Status as StatusResponse;
 
 /**
  * This class provides the implementation of a Predis connection that uses PHP's
  * streams for network communication and wraps the phpiredis C extension (PHP
- * bindings for hiredis) to parse and serialize the Redis protocol.
+ * bindings for hiredis) to parse and serialize the Redis protocol. Everything
+ * is highly experimental (even the very same phpiredis since it is quite new),
+ * so use it at your own risk.
  *
- * This class is intended to provide an optional low-overhead alternative for
- * processing responses from Redis compared to the standard pure-PHP classes.
- * Differences in speed when dealing with short inline responses are practically
- * nonexistent, the actual speed boost is for big multibulk responses when this
- * protocol processor can parse and return responses very fast.
+ * This class is mainly intended to provide an optional low-overhead alternative
+ * for processing replies from Redis compared to the standard pure-PHP classes.
+ * Differences in speed when dealing with short inline replies are practically
+ * nonexistent, the actual speed boost is for long multibulk replies when this
+ * protocol processor can parse and return replies very fast.
  *
  * For instructions on how to build and install the phpiredis extension, please
  * consult the repository of the project.
@@ -52,13 +54,12 @@ class PhpiredisStreamConnection extends StreamConnection
     /**
      * {@inheritdoc}
      */
-    public function __construct(ParametersInterface $parameters)
+    public function __construct(ConnectionParametersInterface $parameters)
     {
-        $this->assertExtensions();
+        $this->checkExtensions();
+        $this->initializeReader();
 
         parent::__construct($parameters);
-
-        $this->reader = $this->createReader();
     }
 
     /**
@@ -74,61 +75,70 @@ class PhpiredisStreamConnection extends StreamConnection
     /**
      * Checks if the phpiredis extension is loaded in PHP.
      */
-    private function assertExtensions()
+    protected function checkExtensions()
     {
-        if (!extension_loaded('phpiredis')) {
+        if (!function_exists('phpiredis_reader_create')) {
             throw new NotSupportedException(
-                'The "phpiredis" extension is required by this connection backend.'
+                'The phpiredis extension must be loaded in order to be able to use this connection class'
             );
         }
     }
 
     /**
-     * Creates a new instance of the protocol reader resource.
-     *
-     * @return resource
+     * {@inheritdoc}
      */
-    private function createReader()
+    protected function checkParameters(ConnectionParametersInterface $parameters)
+    {
+        if (isset($parameters->iterable_multibulk)) {
+            $this->onInvalidOption('iterable_multibulk', $parameters);
+        }
+
+        return parent::checkParameters($parameters);
+    }
+
+    /**
+     * Initializes the protocol reader resource.
+     */
+    protected function initializeReader()
     {
         $reader = phpiredis_reader_create();
 
         phpiredis_reader_set_status_handler($reader, $this->getStatusHandler());
         phpiredis_reader_set_error_handler($reader, $this->getErrorHandler());
 
-        return $reader;
+        $this->reader = $reader;
     }
 
     /**
-     * Returns the underlying protocol reader resource.
-     *
-     * @return resource
-     */
-    protected function getReader()
-    {
-        return $this->reader;
-    }
-
-    /**
-     * Returns the handler used by the protocol reader for inline responses.
+     * Gets the handler used by the protocol reader to handle status replies.
      *
      * @return \Closure
      */
     protected function getStatusHandler()
     {
         return function ($payload) {
-            return StatusResponse::get($payload);
+            switch ($payload) {
+                case 'OK':
+                    return true;
+
+                case 'QUEUED':
+                    return new ResponseQueued();
+
+                default:
+                    return $payload;
+            }
         };
     }
 
     /**
-     * Returns the handler used by the protocol reader for error responses.
+     * Gets the handler used by the protocol reader to handle Redis errors.
      *
      * @return \Closure
      */
     protected function getErrorHandler()
     {
         return function ($errorMessage) {
-            return new ErrorResponse($errorMessage);
+            return new ResponseError($errorMessage);
         };
     }
 
@@ -144,7 +154,7 @@ class PhpiredisStreamConnection extends StreamConnection
             $buffer = fread($socket, 4096);
 
             if ($buffer === false || $buffer === '') {
-                $this->onConnectionError('Error while reading bytes from the server.');
+                $this->onConnectionError('Error while reading bytes from the server');
             }
 
             phpiredis_reader_feed($reader, $buffer);
@@ -160,12 +170,19 @@ class PhpiredisStreamConnection extends StreamConnection
     /**
      * {@inheritdoc}
      */
-    public function writeRequest(CommandInterface $command)
+    public function writeCommand(CommandInterface $command)
     {
-        $arguments = $command->getArguments();
-        array_unshift($arguments, $command->getId());
+        $cmdargs = $command->getArguments();
+        array_unshift($cmdargs, $command->getId());
+        $this->writeBytes(phpiredis_format_command($cmdargs));
+    }
 
-        $this->write(phpiredis_format_command($arguments));
+    /**
+     * {@inheritdoc}
+     */
+    public function __sleep()
+    {
+        return array_diff(parent::__sleep(), array('mbiterable'));
     }
 
     /**
@@ -173,7 +190,7 @@ class PhpiredisStreamConnection extends StreamConnection
      */
     public function __wakeup()
     {
-        $this->assertExtensions();
-        $this->reader = $this->createReader();
+        $this->checkExtensions();
+        $this->initializeReader();
     }
 }

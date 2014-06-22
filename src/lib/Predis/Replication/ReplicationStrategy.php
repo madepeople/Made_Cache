@@ -15,7 +15,7 @@ use Predis\NotSupportedException;
 use Predis\Command\CommandInterface;
 
 /**
- * Defines a strategy for master/slave replication.
+ * Defines a strategy for master/reply replication.
  *
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
@@ -36,18 +36,16 @@ class ReplicationStrategy
     }
 
     /**
-     * Returns if the specified command will perform a read-only operation
-     * on Redis or not.
+     * Returns if the specified command performs a read-only operation
+     * against a key stored on Redis.
      *
-     * @param  CommandInterface $command Command instance.
+     * @param  CommandInterface $command Instance of Redis command.
      * @return bool
      */
     public function isReadOperation(CommandInterface $command)
     {
         if (isset($this->disallowed[$id = $command->getId()])) {
-            throw new NotSupportedException(
-                "The command '$id' is not allowed in replication mode."
-            );
+            throw new NotSupportedException("The command $id is not allowed in replication mode");
         }
 
         if (isset($this->readonly[$id])) {
@@ -74,10 +72,10 @@ class ReplicationStrategy
     }
 
     /**
-     * Returns if the specified command is not allowed for execution in a master
-     * / slave replication context.
+     * Returns if the specified command is disallowed in a master/slave
+     * replication context.
      *
-     * @param  CommandInterface $command Command instance.
+     * @param  CommandInterface $command Instance of Redis command.
      * @return bool
      */
     public function isDisallowedOperation(CommandInterface $command)
@@ -89,7 +87,7 @@ class ReplicationStrategy
      * Checks if a SORT command is a readable operation by parsing the arguments
      * array of the specified commad instance.
      *
-     * @param  CommandInterface $command Command instance.
+     * @param  CommandInterface $command Instance of Redis command.
      * @return bool
      */
     protected function isSortReadOnly(CommandInterface $command)
@@ -100,14 +98,13 @@ class ReplicationStrategy
     }
 
     /**
-     * Marks a command as a read-only operation.
+     * Marks a command as a read-only operation. When the behaviour of a
+     * command can be decided only at runtime depending on its arguments,
+     * a callable object can be provided to dynamically check if the passed
+     * instance of a command performs write operations or not.
      *
-     * When the behavior of a command can be decided only at runtime depending
-     * on its arguments, a callable object can be provided to dynamically check
-     * if the specified command performs a read or a write operation.
-     *
-     * @param string $commandID Command ID.
-     * @param mixed  $readonly  A boolean value or a callable object.
+     * @param string $commandID ID of the command.
+     * @param mixed  $readonly  A boolean or a callable object.
      */
     public function setCommandReadOnly($commandID, $readonly = true)
     {
@@ -128,7 +125,7 @@ class ReplicationStrategy
      * not.
      *
      * @param string $script   Body of the Lua script.
-     * @param mixed  $readonly A boolean value or a callable object.
+     * @param mixed  $readonly A boolean or a callable object.
      */
     public function setScriptReadOnly($script, $readonly = true)
     {

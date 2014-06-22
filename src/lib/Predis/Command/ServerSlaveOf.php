@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/slaveof
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ServerSlaveOf extends Command
+class ServerSlaveOf extends AbstractCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class ServerSlaveOf extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 0 || $arguments[0] === 'NO ONE') {
             return array('NO', 'ONE');

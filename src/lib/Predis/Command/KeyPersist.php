@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/persist
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class KeyPersist extends Command
+class KeyPersist extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

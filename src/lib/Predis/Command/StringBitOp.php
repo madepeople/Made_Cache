@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/bitop
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringBitOp extends Command
+class StringBitOp extends AbstractCommand implements PrefixableCommandInterface
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class StringBitOp extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 3 && is_array($arguments[2])) {
             list($operation, $destination, ) = $arguments;
@@ -37,5 +37,13 @@ class StringBitOp extends Command
         }
 
         return $arguments;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prefixKeys($prefix)
+    {
+        PrefixHelpers::skipFirst($this, $prefix);
     }
 }

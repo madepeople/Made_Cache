@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/scan
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class KeyScan extends Command
+class KeyScan extends AbstractCommand
 {
     /**
      * {@inheritdoc}
@@ -28,7 +28,7 @@ class KeyScan extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         if (count($arguments) === 2 && is_array($arguments[1])) {
             $options = $this->prepareOptions(array_pop($arguments));

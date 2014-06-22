@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/llen
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ListLength extends Command
+class ListLength extends PrefixableCommand
 {
     /**
      * {@inheritdoc}

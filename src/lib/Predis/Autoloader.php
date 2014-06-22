@@ -12,7 +12,7 @@
 namespace Predis;
 
 /**
- * Implements a lightweight PSR-0 compliant autoloader for Predis.
+ * Implements a lightweight PSR-0 compliant autoloader.
  *
  * @author Eric Naeseth <eric@thumbtack.com>
  * @author Daniele Alessandri <suppakilla@gmail.com>

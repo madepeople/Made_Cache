@@ -15,7 +15,7 @@ namespace Predis\Command;
  * @link http://redis.io/commands/mget
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringGetMultiple extends Command
+class StringGetMultiple extends AbstractCommand implements PrefixableCommandInterface
 {
     /**
      * {@inheritdoc}
@@ -28,8 +28,16 @@ class StringGetMultiple extends Command
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function filterArguments(Array $arguments)
     {
         return self::normalizeArguments($arguments);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prefixKeys($prefix)
+    {
+        PrefixHelpers::all($this, $prefix);
     }
 }
