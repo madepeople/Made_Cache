@@ -10,9 +10,7 @@
         }
     ],
     "require": {
-        "magento-hackathon/magento-composer-installer": "*",
-        "predis/predis": "dev-master#809f76a7b3fd0e510a29753528e954a33fa597db",
-        "firegento/psr0autoloader": "dev-master#3531d5e6c1482a281165a6d922a87b45649a8593"
+        "magento-hackathon/magento-composer-installer": "*"
     },
     "repositories": [
         {
