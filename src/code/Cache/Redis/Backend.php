@@ -391,15 +391,53 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 break;
         }
 
-        if ($keys !== null) {
+        if (!empty($keys)) {
             $pipe = $client->pipeline();
             foreach ($keys as $key) {
                 $pipe->del($key);
                 $pipe->del($this->_metadataPrefix . $key);
+                foreach ($tags as $tag) {
+                    $pipe->srem($tag, $key);
+                    $pipe->srem($tag, $this->_metadataPrefix . $key);
+                }
             }
             $pipe->execute();
         }
 
         return true;
+    }
+
+    /**
+     * Clean up old keys from existing tags. If we don't do this the tags grow
+     * to be extremely large which affect cache cleaning performance.
+     */
+    public function gc()
+    {
+        $client = $this->_getClient();
+        $tags = $client->smembers($this->_tagSet);
+        if (!empty($tags)) {
+            foreach ($tags as $tag) {
+                if (!$client->exists($tag)) {
+                    $client->srem($this->_tagSet, $tag);
+                }
+                $keys = $client->smembers($tag);
+                if (empty($keys)) {
+                    continue;
+                }
+                foreach ($keys as $key) {
+                    if (!$client->exists($key)) {
+                        $client->srem($tag, $key);
+                    }
+                }
+            }
+        }
+        $keys = $client->smembers($this->_keySet);
+        if (!empty($keys)) {
+            foreach ($keys as $key) {
+                if (!$client->exists($key)) {
+                    $client->srem($this->_keySet, $key);
+                }
+            }
+        }
     }
 }
