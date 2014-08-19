@@ -117,7 +117,7 @@
         <layout>
             <updates>
                 <madecache>
-                    <file>madecache.xml</file>
+                    <file>made/cache.xml</file>
                 </madecache>
             </updates>
         </layout>

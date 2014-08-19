@@ -1,5 +1,5 @@
-src/code/Cache/*                app/code/community/Made/Cache/
+src/code/*                      app/code/community/Made/
 src/lib/*                       lib/
-src/frontend/layout/*           app/design/frontend/base/default/layout/
+src/frontend/layout/*           app/design/frontend/base/default/layout/made/
 src/Made_Cache.xml              app/etc/modules/Made_Cache.xml
 package.xml                     var/connect/Made_Cache.xml
