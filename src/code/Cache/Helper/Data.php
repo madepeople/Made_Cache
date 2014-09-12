@@ -12,7 +12,7 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
 
     const XML_PATH_MODIFIERS    = 'global/cache/block/modifiers';
 
-    protected $_defaultModifiers = 'cacheid currency groupid ssl blocktype';
+    protected $_defaultModifiers = 'cacheid currency groupid ssl blocktype request';
 
     /**
      * Get block cache modifiers by type

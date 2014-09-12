@@ -29,6 +29,7 @@
                     <currency>cache/modifier_currency</currency>
                     <ssl>cache/modifier_ssl</ssl>
                     <store>cache/modifier_store</store>
+                    <request>cache/modifier_request</request>
                 </modifiers>
             </block>
         </cache>

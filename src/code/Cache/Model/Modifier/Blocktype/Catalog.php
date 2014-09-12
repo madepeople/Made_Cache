@@ -34,7 +34,7 @@ class Made_Cache_Model_Modifier_Blocktype_Catalog
 
         // Set cache tags
         $tags = array(Mage_Catalog_Model_Product::CACHE_TAG . '_'
-        . $block->getProduct()->getId());
+            . $block->getProduct()->getId());
         $block->setData('cache_tags', $tags);
 
         // Set cache keys
@@ -146,11 +146,6 @@ class Made_Cache_Model_Modifier_Blocktype_Catalog
 
         $_taxRateRequest = Mage::getModel('tax/calculation')->getRateRequest();
         $_categoryId = $this->_getCategoryIdForProductList($block);
-
-        foreach (Mage::app()->getRequest()->getParams() as $key => $value) {
-            $value = Mage::helper('cache')->paramValueToCacheKey($value);
-            $keys[] = $key . '_' . $value;
-        }
 
         $keys = array_merge($keys, array(
             $_categoryId,
