@@ -17,7 +17,7 @@ class Made_Cache_Redis_Session
         'hostname' => '127.0.0.1',
         'port' => 6379,
         'timeout' => '60', // http://stackoverflow.com/questions/11776029/predis-is-giving-error-while-reading-line-from-server
-        'read_write_timeout' => 60,
+        'read_write_timeout' => 0,
         'prefix' => '',
         'database' => 1,
     );
@@ -63,6 +63,9 @@ class Made_Cache_Redis_Session
                 'profile' => '2.8',
             ));
         }
+        if (!$this->_client->isConnected()) {
+            $this->_client->connect();
+        }
         return $this->_client;
     }
 
@@ -102,6 +105,7 @@ class Made_Cache_Redis_Session
         }
         $client = $this->_getClient();
         $result = $client->del($id);
+        $client->disconnect();
         return empty($result);
     }
 
@@ -146,6 +150,7 @@ class Made_Cache_Redis_Session
     {
         $client = $this->_getClient();
         $result = $client->get($id);
+        $client->disconnect();
 
         if (empty($result)) {
             // We're writing a new session
@@ -192,6 +197,7 @@ class Made_Cache_Redis_Session
             return true;
         }
         while (($result = $this->_multiWrite($id, $data)) === false);
+        $this->_getClient()->disconnect();
         return true;
     }
 }

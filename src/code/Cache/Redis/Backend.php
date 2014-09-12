@@ -20,7 +20,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         'hostname' => '127.0.0.1',
         'port' => 6379,
         'timeout' => '60', // http://stackoverflow.com/questions/11776029/predis-is-giving-error-while-reading-line-from-server
-        'read_write_timeout' => 60,
+        'read_write_timeout' => 0,
         'prefix' => 'mc:',
         'database' => 0,
     );
@@ -49,6 +49,9 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 'prefix' => $this->_options['prefix'],
                 'profile' => '2.8',
             ));
+        }
+        if (!$this->_client->isConnected()) {
+            $this->_client->connect();
         }
         return $this->_client;
     }
@@ -101,6 +104,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $keys = $this->_getSetArray($client, $this->_keySet);
+        $client->disconnect();
         return $keys;
     }
 
@@ -113,6 +117,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $tags = $this->_getSetArray($client, $this->_tagSet);
+        $client->disconnect();
         return $tags;
     }
 
@@ -134,6 +139,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 $ids[] = $key;
             }
         }
+        $client->disconnect();
         return $ids;
     }
 
@@ -148,7 +154,9 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function getIdsNotMatchingTags($tags = array())
     {
         $client = $this->_getClient();
-        return $client->sdiff($this->_keySet, $tags);
+        $ids = $client->sdiff($this->_keySet, $tags);
+        $client->disconnect();
+        return $ids;
     }
 
     /**
@@ -162,7 +170,9 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function getIdsMatchingAnyTags($tags = array())
     {
         $client = $this->_getClient();
-        return $client->sunion($tags);
+        $ids = $client->sunion($tags);
+        $client->disconnect();
+        return $ids;
     }
 
     /**
@@ -192,6 +202,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $client = $this->_getClient();
         $metadataKey = $this->_metadataPrefix . $id;
         $result = $client->get($metadataKey);
+        $client->disconnect();
         if (!empty($result)) {
             $result = @gzuncompress($result);
             if ($result === false) {
@@ -219,6 +230,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $metadata['expire'] = $lifetime;
         $this->_saveMetadata($pipe, $id, $metadata);
         $result = $pipe->execute();
+        $client->disconnect();
         return (bool)$result[1];
     }
 
@@ -261,6 +273,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $data = $client->get($id);
+        $client->disconnect();
         if ($data === null) {
             return false;
         }
@@ -286,6 +299,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             $pipe->get($metadataKey);
         }
         $result = $pipe->execute();
+        $client->disconnect();
 
         if (count($result) === 1) {
             // It failed at EXISTS
@@ -338,6 +352,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             'tags' => $tags
         ));
         $pipe->execute();
+        $client->disconnect();
         return true;
     }
 
@@ -352,6 +367,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $client = $this->_getClient();
         $client->del($id);
         $client->del($this->_metadataPrefix . $id);
+        $client->disconnect();
         return true;
     }
 
@@ -406,6 +422,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             }
             $pipe->execute();
         }
+        $client->disconnect();
 
         return true;
     }
@@ -442,5 +459,6 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 }
             }
         }
+        $client->disconnect();
     }
 }
