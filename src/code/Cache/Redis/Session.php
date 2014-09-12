@@ -1,8 +1,11 @@
 <?php
+
 /**
  * Redis session read/write implementation. Uses document _ids as session IDs
  *
- * @author jonathan@madepeople.se
+ * @package Made_Cache
+ * @author info@madepeople.se
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 
 require_once 'Predis/Autoloader.php';

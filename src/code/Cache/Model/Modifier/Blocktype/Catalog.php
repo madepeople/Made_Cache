@@ -1,13 +1,13 @@
 <?php
+
 /**
  * Inject cache variables for catalog blocks
  *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
-class Made_Cache_Model_Observer_Catalog
-    extends Made_Cache_Model_Observer_Abstract
+class Made_Cache_Model_Modifier_Blocktype_Catalog
 {
     /**
      * Product view block, don't cache if rendered with cart item update
@@ -25,20 +25,20 @@ class Made_Cache_Model_Observer_Catalog
         // Cart stuff is session-dependent
         $request = $block->getRequest();
         if ($request->getModuleName() == 'checkout'
-                && $request->getControllerName() == 'cart'
-                && $request->getActionName() == 'configure'
-                && $request->getParam('id')) {
+            && $request->getControllerName() == 'cart'
+            && $request->getActionName() == 'configure'
+            && $request->getParam('id')) {
             $block->setData('cache_lifetime', null);
             return;
         }
 
         // Set cache tags
         $tags = array(Mage_Catalog_Model_Product::CACHE_TAG . '_'
-            . $block->getProduct()->getId());
+        . $block->getProduct()->getId());
         $block->setData('cache_tags', $tags);
 
         // Set cache keys
-        $keys = $this->_getBasicKeys($block);
+        $keys = $block->getCacheKeys();
 
         $_taxCalculator = Mage::getModel('tax/calculation');
         $_customer = Mage::getSingleton('customer/session')->getCustomer();
@@ -48,11 +48,11 @@ class Made_Cache_Model_Observer_Catalog
             $_product->getId(),
             $_customer->getGroupId(),
             $_taxCalculator->getRate(
-                    $_taxCalculator->getRateRequest()
-                            ->setProductClassId($_product->getTaxClassId())
+                $_taxCalculator->getRateRequest()
+                    ->setProductClassId($_product->getTaxClassId())
             )
         ));
-        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
+        $block->setData('cache_keys', $keys);
     }
 
     /**
@@ -63,11 +63,11 @@ class Made_Cache_Model_Observer_Catalog
     protected function _getCategoryIdForProductList($block)
     {
         return $block->getCategoryId() ?
-                $block->getCategoryId() :
-                Mage::getSingleton('catalog/layer')
-                    ->getCurrentCategory()
-                    ->getId()
-        ;
+            $block->getCategoryId() :
+            Mage::getSingleton('catalog/layer')
+                ->getCurrentCategory()
+                ->getId()
+            ;
     }
 
     /**
@@ -131,21 +131,20 @@ class Made_Cache_Model_Observer_Catalog
             $tags[] = Mage_Catalog_Model_Product::CACHE_TAG."_".$_product->getId();
             $productIds[] = $_product->getId();
         }
-        
+
         if (!empty($productIds)) {
             $childIds = Mage::helper('cache')->getChildProductIds($productIds);
             foreach ($childIds as $childId) {
                 $tags[] = Mage_Catalog_Model_Product::CACHE_TAG . '_' . $childId;
             }
         }
-        
+
         $block->setData('cache_tags', $tags);
 
         // Set cache key
-        $keys = $this->_getBasicKeys($block);
+        $keys = $block->getCacheKeys();
 
         $_taxRateRequest = Mage::getModel('tax/calculation')->getRateRequest();
-        $_customer = Mage::getSingleton('customer/session')->getCustomer();
         $_categoryId = $this->_getCategoryIdForProductList($block);
 
         foreach (Mage::app()->getRequest()->getParams() as $key => $value) {
@@ -160,14 +159,13 @@ class Made_Cache_Model_Observer_Catalog
             $_toolbar->getCurrentMode(),
             $_toolbar->getCurrentPage(),
             $_toolbar->getLimit(),
-            $_customer->getGroupId(),
             $_taxRateRequest->getCountryId(),
             $_taxRateRequest->getRegionId(),
             $_taxRateRequest->getPostcode(),
             $_taxRateRequest->getCustomerClassId(),
             Mage::registry('current_tag')
         ));
-        $block->setData('cache_key', $this->_getCacheKey($keys, $block));
+        $block->setData('cache_keys', $keys);
     }
 
     /**
@@ -202,14 +200,13 @@ class Made_Cache_Model_Observer_Catalog
         $tags = $block->getLayer()->getStateTags();
         $block->setData('cache_tags', $tags);
 
-        $keys = $this->_getBasicKeys($block);
+        $keys = $block->getCacheKeys();
         $keys[] = $block->getLayer()->getStateKey();
 
         foreach (Mage::app()->getRequest()->getParams() as $key => $value) {
             $value = Mage::helper('cache')->paramValueToCacheKey($value);
             $keys[] = $key . '_' . $value;
         }
-
-        $block->setData('cache_key', $this->_getCacheKey($keys));
+        $block->setData('cache_keys', $keys);
     }
 }

@@ -5,7 +5,9 @@
  * and also keeps an expiry on every key to make it easier to calculate
  * larger amounts of visitors when caching carts, vs the amount of memory.
  *
- * @author jonathan@madepeople.se
+ * @package Made_Cache
+ * @author info@madepeople.se
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 
 require_once 'Predis/Autoloader.php';

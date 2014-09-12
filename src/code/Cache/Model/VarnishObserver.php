@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Manage tag-specific cache cleaning
  *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_Model_VarnishObserver
 {

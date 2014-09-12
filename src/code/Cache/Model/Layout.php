@@ -5,7 +5,7 @@
  *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
 {
@@ -48,10 +48,12 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
                 if (empty($lifetime)) {
                     $lifetime = self::DEFAULT_CACHE_LIFETIME;
                 }
+                $modifiers = trim((string)$node->getAttribute('modifiers'));
                 $key = (string)$node->getAttribute('key');
                 $this->_cacheBlocks[(string)$node] = array(
                     'lifetime' => $lifetime,
-                    'key' => $key
+                    'key' => $key,
+                    'modifiers' => $modifiers
                 );
             }
         }
@@ -130,6 +132,9 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
 
             if (!empty($this->_cacheBlocks[$blockName]['key'])) {
                 $block->setData('cache_key', $this->_cacheBlocks[$blockName]['key']);
+            }
+            if (!empty($this->_cacheBlocks[$blockName]['modifiers'])) {
+                $block->setData('cache_modifiers', $this->_cacheBlocks[$blockName]['modifiers']);
             }
         }
 

@@ -3,7 +3,7 @@
 /**
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 -->
 <config>
@@ -21,6 +21,16 @@
                     <tags>FPC_VARNISH</tags>
                 </varnish>
             </types>
+            <block>
+                <modifiers>
+                    <groupid>cache/modifier_groupid</groupid>
+                    <cacheid>cache/modifier_cacheid</cacheid>
+                    <blocktype>cache/modifier_blocktype</blocktype>
+                    <currency>cache/modifier_currency</currency>
+                    <ssl>cache/modifier_ssl</ssl>
+                    <store>cache/modifier_store</store>
+                </modifiers>
+            </block>
         </cache>
         <helpers>
             <cache>

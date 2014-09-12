@@ -1,39 +1,93 @@
 <?php
+
 /**
  * Contains globally used helper functions
- * 
+ *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
 {
+
+    const XML_PATH_MODIFIERS    = 'global/cache/block/modifiers';
+
+    protected $_defaultModifiers = 'cacheid currency groupid ssl blocktype';
+
+    /**
+     * Get block cache modifiers by type
+     *
+     * @param string $type
+     * @return array
+     */
+    public function getModifiersByType($type)
+    {
+        $path = self::XML_PATH_MODIFIERS . '/' . $type;
+        $modifiersConfig = Mage::getConfig()->getNode($path);
+        if ($modifiersConfig) {
+            $modifiers = (string) $modifiersConfig;
+            $modifiers = explode(',', $modifiers);
+        } else {
+            $modifiers = false;
+        }
+        return $modifiers;
+    }
+
+    /**
+     * Get the classes used to modify block cache variables
+     *
+     * @param Mage_Core_Block_Abstract $block
+     * @return array
+     */
+    public function getBlockModifiers(Mage_Core_Block_Abstract $block)
+    {
+        $modifiers = $block->getCacheModifiers();
+        if (empty($modifiers) || $modifiers === 'default') {
+            $modifiers = $this->_defaultModifiers;
+        }
+        return explode(' ', $modifiers);
+    }
+
+    /**
+     * Get the final block key used for caching
+     *
+     * @param Mage_Core_Block_Abstract $block
+     * @return string
+     */
+    public function getBlockKey(Mage_Core_Block_Abstract $block)
+    {
+        $cacheKeys = array_values($block->getData('cache_keys'));
+        $key = implode('|', $cacheKeys);
+        $key = sha1($key);
+        return $key;
+    }
+
     /**
      * Flattens array
-     * 
+     *
      * @param type $array
      * @return string
      */
     protected function _flattenArray($array)
     {
-        $result = array(); 
-        foreach ($array as $key => $value) { 
-            if (is_array($value)) { 
-                $result = array_merge($result, $this->_flattenArray($value)); 
-            } 
-            else { 
-                $result[$key] = $value; 
-            } 
+        $result = array();
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $result = array_merge($result, $this->_flattenArray($value));
+            }
+            else {
+                $result[$key] = $value;
+            }
         }
         return $result;
     }
-    
+
     /**
      * Returns string usable as a cache key part, and takes different
      * datatypes into concern
-     * 
+     *
      * @param mixed $value
-     * @return string 
+     * @return string
      */
     public function paramValueToCacheKey($value)
     {
@@ -46,21 +100,21 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
             }
             $value = $newValue;
         }
-        
-        return $value; 
+
+        return $value;
     }
-    
+
     /**
      * Used to determine if the current response has notification messages,
      * because if it does, neither the block cache or varnish should keep it.
-     * 
-     * @return boolean 
+     *
+     * @return boolean
      */
     public function responseHasMessages()
     {
         $layout = Mage::app()->getFrontController()->getAction()
                 ->getLayout();
-        
+
         foreach (array('global_messages', 'messages') as $blockName) {
             if (($messagesBlock = $layout->getBlock($blockName)) !== false) {
                 if ($messagesBlock->getMessageCollection()->count()) {
@@ -68,14 +122,14 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
                 }
             }
         }
-        
+
         return (bool)Mage::getModel('core/message_collection')
                 ->count();
     }
-    
+
     /**
      * Get product IDs for related products (useful when generating cache tags)
-     * 
+     *
      * @param array $productIds
      * @return array
      */
@@ -86,11 +140,11 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
         $select = $read->select()
                 ->from($resource->getTableName('catalog/product_super_link'), array('product_id'))
                 ->where('parent_id IN(?)', $productIds);
-        
+
         $childIds = array();
         foreach ($read->fetchAll($select) AS $link) {
             $childIds[] = $link['product_id'];
         }
         return $childIds;
-    }    
+    }
 }

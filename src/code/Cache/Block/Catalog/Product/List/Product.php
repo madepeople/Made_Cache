@@ -1,19 +1,20 @@
 <?php
+
 /**
  * Granular product list product cache
- * 
+ *
  * @see Made_Cache_Block_Catalog_Product_List
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_Block_Catalog_Product_List_Product
     extends Made_Cache_Block_Catalog_Product_List
 {
     /**
      * Only clear on the product itself
-     * 
-     * @return string 
+     *
+     * @return string
      */
     public function getCacheTags()
     {
@@ -21,11 +22,11 @@ class Made_Cache_Block_Catalog_Product_List_Product
             $this->getProduct()->getId());
         return $tags;
     }
-    
+
     /**
      * Product unique - not category
-     * 
-     * @return array 
+     *
+     * @return array
      */
     public function getCacheKeyInfo()
     {
@@ -48,10 +49,10 @@ class Made_Cache_Block_Catalog_Product_List_Product
             )
         ));
     }
-    
+
     /**
      * No default values should be used
-     * 
+     *
      * @return string
      */
     public function getCacheKey()
@@ -62,13 +63,13 @@ class Made_Cache_Block_Catalog_Product_List_Product
         $key = sha1($key);
         return $key;
     }
-    
+
     /**
      * We can't cache the return URL, no idea where the cache came from and
      * it can't be user-dependent
-     * 
+     *
      * @param Mage_Catalog_Model_Product $product
-     * @param array $additional 
+     * @param array $additional
      */
     public function getAddToCartUrl($product, $additional = array())
     {

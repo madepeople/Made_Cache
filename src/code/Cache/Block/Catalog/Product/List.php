@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Use this for granular product list cache
  *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_Block_Catalog_Product_List extends Mage_Catalog_Block_Product_List
 {

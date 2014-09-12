@@ -4,10 +4,11 @@
  *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_Model_Observer
 {
+
     protected $_shouldProfile = null;
 
     /**
@@ -30,45 +31,26 @@ class Made_Cache_Model_Observer
             'block' => $block
         ));
 
-        switch (true) {
-            case $block instanceof Mage_Catalog_Block_Product_View:
-                Mage::getSingleton('cache/observer_catalog')
-                    ->applyProductView($block);
-                break;
-            case $block instanceof Mage_Catalog_Block_Category_View:
-                Mage::getSingleton('cache/observer_catalog')
-                    ->applyCategoryView($block);
-                break;
-            case $block instanceof Mage_Catalog_Block_Layer_View:
-                Mage::getSingleton('cache/observer_catalog')
-                    ->applyCatalogLayerView($block);
-                break;
-            case $block instanceof Mage_CatalogSearch_Block_Advanced_Result:
-                Mage::getSingleton('cache/observer_catalog')
-                    ->applySearchResult($block);
-                break;
-            case $block instanceof Mage_Catalog_Block_Product_List:
-                Mage::getSingleton('cache/observer_catalog')
-                    ->applyProductList($block);
-                break;
-            case $block instanceof Mage_Cms_Block_Page:
-                Mage::getSingleton('cache/observer_cms')
-                    ->applyCmsPage($block);
-                break;
-            case $block instanceof Mage_Cms_Block_Block:
-            case $block instanceof Mage_Cms_Block_Widget_Block:
-                Mage::getSingleton('cache/observer_cms')
-                    ->applyCmsBlock($block);
-                break;
-            case $block instanceof Mage_Checkout_Block_Cart_Sidebar:
-                Mage::getSingleton('cache/observer_checkout')
-                    ->applyCartSidebar($block);
-                break;
-            default:
-                Mage::getSingleton('cache/observer_default')
-                    ->applyDefault($block);
-                break;
+        // Set the temporary keys variable used by modifiers
+        $keys = $block->getCacheKeyInfo();
+        if (empty($keys)) {
+            $keys = array();
         }
+        $block->setCacheKeys($keys);
+
+        $helper = Mage::helper('cache');
+
+        $modifiers = $helper->getBlockModifiers($block);
+        foreach ($modifiers as $modifier) {
+            $modifierClasses = $helper->getModifiersByType($modifier);
+            foreach ($modifierClasses as $modifierClass) {
+                $object = Mage::getSingleton($modifierClass);
+                $object->apply($block);
+            }
+        }
+
+        $key = $helper->getBlockKey($block);
+        $block->setData('cache_key', $key);
 
         Mage::dispatchEvent('made_cache_setup_block_after', array(
             'block' => $block

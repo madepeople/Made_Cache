@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Controller that handles Varnish ESI actions and messages
  *
  * @package Made_Cache
  * @author info@madepeople.se
- * @copyright Copyright (c) 2012 Made People AB. (http://www.madepeople.se/)
+ * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
 {
