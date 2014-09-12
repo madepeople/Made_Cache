@@ -442,6 +442,10 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 if (!$client->exists($tag)) {
                     $client->srem($this->_tagSet, $tag);
                 }
+                $type = $client->type($tag);
+                if (strtolower($type) !== 'set') {
+                    continue;
+                }
                 $keys = $client->smembers($tag);
                 if (empty($keys)) {
                     continue;
