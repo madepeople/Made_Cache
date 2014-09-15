@@ -26,8 +26,6 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         'prefix' => 'mc:',
         'database' => 0,
     );
-    protected $_keySet = 'magento_keys';
-    protected $_tagSet = 'magento_tags';
     protected $_metadataPrefix = 'metadata_';
     protected $_defaultExpiry = 259200; // Expire a key after a month, regardless
 
@@ -107,9 +105,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function getIds()
     {
-        $client = $this->_getClient();
-        $keys = $this->_getSetArray($client, $this->_keySet);
-        return $keys;
+        return array();
     }
 
     /**
@@ -119,9 +115,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function getTags()
     {
-        $client = $this->_getClient();
-        $tags = $this->_getSetArray($client, $this->_tagSet);
-        return $tags;
+        return array();
     }
 
     /**
@@ -134,15 +128,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function getIdsMatchingTags($tags = array())
     {
-        $client = $this->_getClient();
-        $ids = array();
-        foreach ($tags as $tag) {
-            $keys = $this->_getSetArray($client, $tag);
-            foreach ($keys as $key) {
-                $ids[] = $key;
-            }
-        }
-        return $ids;
+        return array();
     }
 
     /**
@@ -155,9 +141,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function getIdsNotMatchingTags($tags = array())
     {
-        $client = $this->_getClient();
-        $ids = $client->sdiff($this->_keySet, $tags);
-        return $ids;
+        return array();
     }
 
     /**
@@ -170,9 +154,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function getIdsMatchingAnyTags($tags = array())
     {
-        $client = $this->_getClient();
-        $ids = $client->sunion($tags);
-        return $ids;
+        return array();
     }
 
     /**
@@ -254,7 +236,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             'expired_read' => false,
             'priority' => false,
             'infinite_lifetime' => true,
-            'get_list' => true
+            'get_list' => false
         );
     }
 
@@ -277,6 +259,14 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $data = @gzuncompress($data);
         if ($data === false) {
             return false;
+        }
+        $metadata = $this->getMetadatas($id);
+        $tags = $metadata['tags'];
+        foreach ($tags as $tag) {
+            if (!$client->exists($tag)) {
+                $this->remove($id);
+                return false;
+            }
         }
         return $data;
     }
@@ -309,6 +299,13 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if (!is_array($metadata) || empty($metadata['mtime'])) {
             return false;
         }
+        $tags = $metadata['tags'];
+        foreach ($tags as $tag) {
+            if (!$client->exists($tag)) {
+                $this->remove($id);
+                return false;
+            }
+        }
         return $metadata['mtime'];
     }
 
@@ -335,19 +332,27 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         }
         $lifetime += time();
         $pipe->expireat($id, $lifetime);
-        $pipe->sadd($this->_keySet, $id);
-        $pipe->expire($this->_keySet, $this->_defaultExpiry);
+
+        $now = time();
         foreach ($tags as $tag) {
-            $pipe->sadd($tag, $id);
-            $pipe->expire($tag, $this->_defaultExpiry);
-            $pipe->sadd($this->_tagSet, $tag);
-            $pipe->expire($this->_tagSet, $this->_defaultExpiry);
+            $tagCacheTimestamp = $client->get($tag);
+            if (!$tagCacheTimestamp) {
+                $tagCacheTimestamp = $now;
+                $pipe->set("{$tag}_{$tagCacheTimestamp}", 1);
+                $pipe->expireat("{$tag}_{$tagCacheTimestamp}", $lifetime);
+                $pipe->set($tag, $tagCacheTimestamp);
+                $pipe->expireat($tag, $lifetime);
+            }
+            $saveTags[] = "{$tag}_{$tagCacheTimestamp}";
         }
+
         $this->_saveMetadata($pipe, $id, array(
             'expire' => $lifetime,
-            'tags' => $tags
+            'tags' => $saveTags
         ));
+
         $pipe->execute();
+
         return true;
     }
 
@@ -390,69 +395,27 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             case Zend_Cache::CLEANING_MODE_ALL:
                 $client->flushdb();
                 break;
+
+            // Both TAG and ANY_TAG use the same method because we can't differ
+            // between AND and OR with our cleaning method
             case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
-                $keys = $this->getIdsMatchingTags($tags);
+            case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
+                foreach ($tags as $tag) {
+                    $tagCacheTimestamp = $client->get($tag);
+                    if ($tagCacheTimestamp) {
+                        $client->del("{$tag}_{$tagCacheTimestamp}");
+                        $client->del($tag);
+                    }
+                }
                 break;
             case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
-                $keys = $this->getIdsNotMatchingTags($tags);
-                break;
-            case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
-                $keys = $this->getIdsMatchingAnyTags($tags);
+                // Not used by Magento
                 break;
             case Zend_Cache::CLEANING_MODE_OLD:
                 // Redis handles expiration on its own
                 break;
         }
 
-        if (!empty($keys)) {
-            foreach ($keys as $key) {
-                $client->del($key);
-                $client->del($this->_metadataPrefix . $key);
-                foreach ($tags as $tag) {
-                    $client->srem($tag, $key);
-                    $client->srem($tag, $this->_metadataPrefix . $key);
-                }
-            }
-        }
-
         return true;
-    }
-
-    /**
-     * Clean up old keys from existing tags. If we don't do this the tags grow
-     * to be extremely large which affect cache cleaning performance.
-     */
-    public function gc()
-    {
-        $client = $this->_getClient();
-        $tags = $client->smembers($this->_tagSet);
-        if (!empty($tags)) {
-            foreach ($tags as $tag) {
-                if (!$client->exists($tag)) {
-                    $client->srem($this->_tagSet, $tag);
-                }
-                $type = $client->type($tag);
-                if (strtolower($type) !== 'set') {
-                    continue;
-                }
-                $keys = $client->smembers($tag);
-                if (empty($keys)) {
-                    continue;
-                }
-                foreach ($keys as $key) {
-                    if (!$client->exists($key)) {
-                        $client->srem($tag, $key);
-                    }
-                }
-            }
-        }
-        $keys = $client->smembers($this->_keySet);
-        if (!empty($keys)) {
-            foreach ($keys as $key) {
-                if (!$client->exists($key)) {
-                    $client->srem($this->_keySet, $key);
-                }
-            }
-        }
     }
 }
