@@ -66,7 +66,10 @@ class Made_Cache_Redis_Session
                 'profile' => '2.8',
             ));
         }
-        if (!$this->_client->isConnected()) {
+        try {
+            $this->_client->ping();
+        } catch (Exception $e) {
+            $this->_client->disconnect();
             $this->_client->connect();
         }
         return $this->_client;
@@ -108,7 +111,6 @@ class Made_Cache_Redis_Session
         }
         $client = $this->_getClient();
         $result = $client->del($id);
-        $client->disconnect();
         return empty($result);
     }
 
@@ -153,7 +155,6 @@ class Made_Cache_Redis_Session
     {
         $client = $this->_getClient();
         $result = $client->get($id);
-        $client->disconnect();
 
         if (empty($result)) {
             // We're writing a new session
@@ -200,7 +201,6 @@ class Made_Cache_Redis_Session
             return true;
         }
         while (($result = $this->_multiWrite($id, $data)) === false);
-        $this->_getClient()->disconnect();
         return true;
     }
 }
