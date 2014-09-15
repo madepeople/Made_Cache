@@ -405,16 +405,14 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         }
 
         if (!empty($keys)) {
-            $pipe = $client->pipeline();
             foreach ($keys as $key) {
-                $pipe->del($key);
-                $pipe->del($this->_metadataPrefix . $key);
+                $client->del($key);
+                $client->del($this->_metadataPrefix . $key);
                 foreach ($tags as $tag) {
-                    $pipe->srem($tag, $key);
-                    $pipe->srem($tag, $this->_metadataPrefix . $key);
+                    $client->srem($tag, $key);
+                    $client->srem($tag, $this->_metadataPrefix . $key);
                 }
             }
-            $pipe->execute();
         }
 
         return true;
