@@ -389,6 +389,10 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function clean($mode = Zend_Cache::CLEANING_MODE_ALL, $tags = array())
     {
+        if (!empty($tags)) {
+            $tags = array_unique($tags);
+        }
+
         $client = $this->_getClient();
         $keys = null;
         switch ($mode) {
