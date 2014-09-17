@@ -260,14 +260,20 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if ($data === false) {
             return false;
         }
+
         $metadata = $this->getMetadatas($id);
         $tags = $metadata['tags'];
+        $pipe = $client->pipeline();
         foreach ($tags as $tag) {
-            if (!$client->exists($tag)) {
-                $this->remove($id);
+            $pipe->exists($tag);
+        }
+        $results = $pipe->execute();
+        foreach ($results as $result) {
+            if (!$result) {
                 return false;
             }
         }
+
         return $data;
     }
 
@@ -299,13 +305,19 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if (!is_array($metadata) || empty($metadata['mtime'])) {
             return false;
         }
+
         $tags = $metadata['tags'];
+        $pipe = $client->pipeline();
         foreach ($tags as $tag) {
-            if (!$client->exists($tag)) {
-                $this->remove($id);
+            $pipe->exists($tag);
+        }
+        $results = $pipe->execute();
+        foreach ($results as $result) {
+            if (!$result) {
                 return false;
             }
         }
+
         return $metadata['mtime'];
     }
 
@@ -404,13 +416,15 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             // between AND and OR with our cleaning method
             case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
             case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
+                $pipe = $client->pipeline();
                 foreach ($tags as $tag) {
                     $tagCacheTimestamp = $client->get($tag);
                     if ($tagCacheTimestamp) {
-                        $client->del("{$tag}_{$tagCacheTimestamp}");
-                        $client->del($tag);
+                        $pipe->del("{$tag}_{$tagCacheTimestamp}");
+                        $pipe->del($tag);
                     }
                 }
+                $pipe->execute();
                 break;
             case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
                 // Not used by Magento
