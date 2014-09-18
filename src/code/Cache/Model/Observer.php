@@ -90,18 +90,6 @@ class Made_Cache_Model_Observer
     }
 
     /**
-     * Clear quote cache on custom tag
-     *
-     * @param Varien_Event_Observer $observer
-     */
-    public function clearQuoteCache(Varien_Event_Observer $observer)
-    {
-        // Only runs when there is an active quote in the session
-        $object = $observer->getEvent()->getQuote();
-        Mage::app()->cleanCache($object->getCacheIdTags());
-    }
-
-    /**
      * Unset the uenc param for redirection of blocks that have cached links.
      * If we don't do this, links redirects to where user X came from when
      * the block was cached. This also means that cached return links for
