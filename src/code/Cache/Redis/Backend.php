@@ -263,14 +263,16 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
 
         $metadata = $this->getMetadatas($id);
         $tags = $metadata['tags'];
-        $pipe = $client->pipeline();
-        foreach ($tags as $tag) {
-            $pipe->exists($tag);
-        }
-        $results = $pipe->execute();
-        foreach ($results as $result) {
-            if (!$result) {
-                return false;
+        if (!empty($tags)) {
+            $pipe = $client->pipeline();
+            foreach ($tags as $tag) {
+                $pipe->exists($tag);
+            }
+            $results = $pipe->execute();
+            foreach ($results as $result) {
+                if (!$result) {
+                    return false;
+                }
             }
         }
 
