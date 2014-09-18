@@ -15,10 +15,10 @@ class Made_Cache_Model_Modifier_Blocktype_Checkout
      * @param Mage_Checkout_Block_Cart_Sidebar $block
      * @return int
      */
-    protected function _getQuoteId(Mage_Checkout_Block_Cart_Sidebar $block)
+    protected function _getQuote(Mage_Checkout_Block_Cart_Abstract $block)
     {
         $quote = $block->getCustomQuote() ? $block->getCustomQuote() : $block->getQuote();
-        return $quote->getId();
+        return $quote;
     }
 
     /**
@@ -27,20 +27,21 @@ class Made_Cache_Model_Modifier_Blocktype_Checkout
      *
      * @param Mage_Checkout_Block_Cart_Sidebar $block
      */
-    public function applyCartSidebar(Mage_Checkout_Block_Cart_Sidebar $block)
+    public function applyCartSidebar(Mage_Checkout_Block_Cart_Abstract $block)
     {
-        if (!$block->getQuote()->getId()) {
+        if (!$this->_getQuote($block)->getId()) {
             $block->setData('cache_lifetime', null);
             return;
         }
 
         // Set cache tags
-        $tags = array('SALES_QUOTE_' . $this->_getQuoteId($block));
+        $quote = $this->_getQuote($block);
+        $tags = $quote->getCacheIdTags();
         $block->setData('cache_tags', $tags);
 
         // Set cache keys
         $keys = $block->getCacheKeys();
-        $keys[] = $this->_getQuoteId($block);
+        $keys[] = $quote->getId();
         $block->setData('cache_keys', $keys);
     }
 }

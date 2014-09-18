@@ -23,7 +23,6 @@ class Made_Cache_Block_Catalog_Product_List extends Mage_Catalog_Block_Product_L
         if (($viewedProduct = Mage::registry('product')) !== null) {
             Mage::unregister('product');
         }
-
         $block = $this->getLayout()
                 ->createBlock('cache/catalog_product_list_product')
                 ->setCacheLifetime($this->getCacheLifetime())

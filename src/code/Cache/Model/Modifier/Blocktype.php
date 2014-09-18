@@ -42,7 +42,7 @@ class Made_Cache_Model_Modifier_Blocktype
                 Mage::getSingleton('cache/modifier_blocktype_cms')
                     ->applyCmsBlock($block);
                 break;
-            case $block instanceof Mage_Checkout_Block_Cart_Sidebar:
+            case $block instanceof Mage_Checkout_Block_Cart_Abstract:
                 Mage::getSingleton('cache/modifier_blocktype_checkout')
                     ->applyCartSidebar($block);
                 break;

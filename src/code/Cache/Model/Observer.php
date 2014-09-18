@@ -98,7 +98,7 @@ class Made_Cache_Model_Observer
     {
         // Only runs when there is an active quote in the session
         $object = $observer->getEvent()->getQuote();
-        Mage::app()->cleanCache(array('SALES_QUOTE_' . $object->getId()));
+        Mage::app()->cleanCache($object->getCacheIdTags());
     }
 
     /**

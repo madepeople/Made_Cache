@@ -391,6 +391,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $client = $this->_getClient();
         $keys = null;
+
         switch ($mode) {
             case Zend_Cache::CLEANING_MODE_ALL:
                 $client->flushdb();
