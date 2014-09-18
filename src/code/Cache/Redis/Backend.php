@@ -187,6 +187,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if (!empty($result)) {
             $result = @gzuncompress($result);
             if ($result === false) {
+                $client->del($metadataKey);
                 return false;
             }
         }
@@ -203,15 +204,13 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function touch($id, $extraLifetime)
     {
         $client = $this->_getClient();
-        $pipe = $client->pipeline();
-        $ttl = $pipe->ttl($id);
+        $ttl = $client->ttl($id);
         $lifetime = $ttl + $extraLifetime;
-        $pipe->expireat($id, $lifetime);
+        $result = $client->expireat($id, $lifetime);
         $metadata = $this->getMetadatas($id);
         $metadata['expire'] = $lifetime;
-        $this->_saveMetadata($pipe, $id, $metadata);
-        $result = $pipe->execute();
-        return (bool)$result[1];
+        $this->_saveMetadata($client, $id, $metadata);
+        return (bool)$result;
     }
 
     /**
@@ -251,6 +250,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
+        $metadata = $this->getMetadatas($id);
+        if ($metadata === false) {
+            return false;
+        }
+
         $client = $this->_getClient();
         $data = $client->get($id);
         if ($data === null) {
@@ -261,16 +265,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             return false;
         }
 
-        $metadata = $this->getMetadatas($id);
         $tags = $metadata['tags'];
         if (!empty($tags)) {
-            $pipe = $client->pipeline();
             foreach ($tags as $tag) {
-                $pipe->exists($tag);
-            }
-            $results = $pipe->execute();
-            foreach ($results as $result) {
-                if (!$result) {
+                if (!$client->exists($tag)) {
+                    $this->remove($id);
                     return false;
                 }
             }
@@ -338,34 +337,32 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function save($data, $id, $tags = array(), $specificLifetime = false)
     {
         $client = $this->_getClient();
-        $pipe = $client->pipeline();
-        $pipe->set($id, gzcompress($data, 6));
+        $client->set($id, gzcompress($data, 6));
         $lifetime = $this->getLifetime($specificLifetime);
         if ($lifetime === null) {
             $lifetime = $this->_defaultExpiry;
         }
         $lifetime += time();
-        $pipe->expireat($id, $lifetime);
+        $client->expireat($id, $lifetime);
 
         $now = time();
+        $tags = array_unique(array_values($tags));
         foreach ($tags as $tag) {
             $tagCacheTimestamp = $client->get($tag);
             if (!$tagCacheTimestamp) {
                 $tagCacheTimestamp = $now;
-                $pipe->set("{$tag}_{$tagCacheTimestamp}", 1);
-                $pipe->expireat("{$tag}_{$tagCacheTimestamp}", $lifetime);
-                $pipe->set($tag, $tagCacheTimestamp);
-                $pipe->expireat($tag, $lifetime);
+                $client->set("{$tag}_{$tagCacheTimestamp}", 1);
+                $client->expireat("{$tag}_{$tagCacheTimestamp}", $lifetime);
+                $client->set($tag, $tagCacheTimestamp);
+                $client->expireat($tag, $lifetime);
             }
             $saveTags[] = "{$tag}_{$tagCacheTimestamp}";
         }
 
-        $this->_saveMetadata($pipe, $id, array(
+        $this->_saveMetadata($client, $id, array(
             'expire' => $lifetime,
             'tags' => $saveTags
         ));
-
-        $pipe->execute();
 
         return true;
     }
@@ -419,15 +416,13 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             // between AND and OR with our cleaning method
             case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
             case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
-                $pipe = $client->pipeline();
                 foreach ($tags as $tag) {
                     $tagCacheTimestamp = $client->get($tag);
                     if ($tagCacheTimestamp) {
-                        $pipe->del("{$tag}_{$tagCacheTimestamp}");
-                        $pipe->del($tag);
+                        $client->del($tag);
+                        $client->del("{$tag}_{$tagCacheTimestamp}");
                     }
                 }
-                $pipe->execute();
                 break;
             case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
                 // Not used by Magento
