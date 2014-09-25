@@ -42,6 +42,16 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </remove_redirect_param>
+                        <clear_product_cache_placed_order>
+                            <label>Clear Product Cache on Placed Order</label>
+                            <comment>This can be useful to enable in some cases where products stock status' change frequently and this needs to be reflected on the frontend. In some combinations and setups, especially with EE FPC, it might lower performance quite a lot.</comment>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>3</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </clear_product_cache_placed_order>
                     </fields>
                 </general>
                 <varnish translate="label">

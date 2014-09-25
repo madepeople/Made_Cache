@@ -170,6 +170,10 @@ class Made_Cache_Model_Observer
      */
     public function clearProductCacheAfterOrderPlace(Varien_Event_Observer $observer)
     {
+        if (!Mage::getStoreConfigFlag('cache/general/clear_product_cache_placed_order')) {
+            return;
+        }
+
         $order = $observer->getEvent()->getOrder();
 
         $tags = array();

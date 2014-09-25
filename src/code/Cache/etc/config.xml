@@ -264,6 +264,7 @@
             <general>
                 <enable_profiler>0</enable_profiler>
                 <remove_redirect_param>0</remove_redirect_param>
+                <clear_product_cache_placed_order>0</clear_product_cache_placed_order>
             </general>
             <varnish>
                 <ttl>1w</ttl>
