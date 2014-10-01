@@ -434,4 +434,51 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
 
         return true;
     }
+
+    /**
+     * Redis simple, single instance locking. Acquire a lock using a token
+     * to identify the specific lock
+     *
+     * @see http://redis.io/commands/set
+     * @param $token
+     * @param $timeout
+     * @return boolean
+     */
+    public function acquireLock($lockName, $token, $timeout, &$counter = null)
+    {
+        $client = $this->_getClient();
+        $result = $client->set($lockName, $token, "NX", "EX", $timeout);
+        if ($result === false && $counter === false) {
+            $counter = $client->incr($lockName);
+        }
+        return $result === true;
+    }
+
+    /**
+     * Release the single instance lock
+     *
+     * @param $lockName
+     * @param $token
+     */
+    public function releaseLock($lockName, $token, &$counter = null)
+    {
+        $client = $this->_getClient();
+
+        if ($counter !== null && $counter > 0) {
+            $counter = $client->decr($lockName);
+        }
+
+        $script = '
+            if redis.call("get",KEYS[1]) == ARGV[1]
+            then
+                return redis.call("del",KEYS[1])
+            else
+                return 0
+            end
+            ';
+
+        $result = $client->eval($script, 1, $lockName, $token);
+
+        return $result !== 0;
+    }
 }

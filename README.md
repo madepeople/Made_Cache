@@ -9,16 +9,20 @@ Features
 --
 * Quick & Versatile Performance Boost
 * Varnish + ESI support
+* High-performance Redis cache & session backends
+* Configuration regeneration locking
 * Unobtrusive & Future Proof
 * Simple Configuration
 
 Installation
 --
-Install this module using [modman](https://github.com/colinmollenhour/modman)
+Install this module either by using [modman](https://github.com/colinmollenhour/modman)
 
 `modman clone git@github.com:madepeople/Made_Cache.git`
 
-Or by downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html)
+Or using composer.
+
+By downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html) (not always updated).
 
 Magento Configuration
 --
@@ -49,6 +53,42 @@ These tags exist:
 **name** - Used inside the above to determine which blocks should be used
 
 See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
+
+Block Cache Modifiers
+--
+In order to keep the block caching flexible and allow for custom key generation and timeouts, we're using so called Modifier classes. This lets us apply the same cache for the main product list as for a custom block with products in it, for instance. Modifiers typically build the final caching key, which defines how granular the block should be cached.
+
+The default modifiers are:
+
+**cacheid** - The core cache id for the specific block
+
+**store** - Cache one version per store
+
+**currency** - Cache differently depending on currency
+
+**groupid** - Use the group ID
+
+**ssl** - SSL or no SSL, typically for blocks that include links
+
+**blocktype** - Custom built in modifier that uses different methods for different type of core blocks. See [Model/Modifier/Blocktype](https://github.com/madepeople/Made_Cache/tree/master/src/code/Cache/Model/Modifier/Blocktype)
+
+**request** - Use the request and it's parameters
+
+Modifiers are also a nice way to cache differently depending on layout handles and so on.
+
+Usage:
+
+```xml
+<layout version="0.1.0">
+    <default>
+        <cache>
+            <name modifiers="store currency">block_that_differs_depending_on_store_and_currency</name>
+        </cache>
+    <default>
+</layout>
+```
+
+Custom modifiers can be defined [like this](https://github.com/madepeople/Made_Cache/blob/master/src/code/Cache/etc/config.xml#L25).
 
 Varnish, ESI & Sessions
 ==
@@ -81,29 +121,12 @@ It is technically possible for Varnish to check the actual session storage direc
 
 Apart from these drawbacks, making Varnish to talk to the different storages isn't very straight forward.
 
-Given the above, I have experimented with using Redis and [CouchDB](https://github.com/madepeople/Made_CouchdbSession):
+Given the above, I have experimented with using Redis:
 
-CouchDB pros:
-
-* MVCC instead of locking gives performance and consistency
-* Queried via a HTTP interface that Varnish can talk to easily using libvmod-curl
-* A JavaScript _show_ function can be used to determine session validity inside of CouchDB itself, and return a boolean to Varnish. If the boolean is "true", we know it's safe to serve the visitor content from cache.
-
-CouchDB cons:
-
-* The compaction process takes a lot of time and can make the general performance suffer
-* Every request means a new write, meaning the size of the database grows rapidly
-
-Redis pros:
-
-* Build-in optimistic locking
-* In-memory with optional persistance
+* Built-in optimistic locking
+* In-memory with optional persistence
 * [A Varnish Redis client exists](https://github.com/brandonwamboldt/libvmod-redis)
-
-Redis cons:
-
-* An improperly configured Redis daemon can out of memory crash and make break a site
-
+* Very fast
 
 Varnish Session Validation
 ==
@@ -123,26 +146,9 @@ apt-get -b source varnish
 
 **IMPORTANT!** If an apt-get upgrade also upgrades varnish, you *have* to recompile libvmod-curl again, using the whole procedure from `apt-get -b source varnish` and forward.
 
-CouchDB Configuration
---
-First, install and configure [Made_CouchdbSession](https://github.com/madepeople/Made_CouchdbSession) and make sure it's working. After this, Varnish needs [libvmod-curl](https://github.com/varnish/libvmod-curl) installed. For reference, here are Debian instructions:
-
-```bash
-apt-get install libcurl3-dev
-git clone https://github.com/varnish/libvmod-curl.git
-cd libvmod-curl
-./autogen.sh
-./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
-make
-make install
-```
-
-With vmod-curl and the show function above in place, search for "curl" in the magento.vcl file and uncomment the affected lines. Then just restart Varnish and you should be good to go.
-
 Redis Configuration
 --
-
-We just need to install the redis vmod the same way as the curl vmod
+First, install and configure my [Redis session backend](https://github.com/madepeople/Made_Cache/blob/master/src/code/Cache/Redis/Session.php) and make sure it's working. After this, Varnish needs [libvmod-redis](https://github.com/brandonwamboldt/libvmod-redis) installed. For reference, here are Debian instructions:
 
 ```bash
 apt-get install libhiredis-dev
@@ -154,12 +160,30 @@ make
 make install
 ```
 
+With vmod-redis in place, search for "redis" in the magento.vcl file and uncomment and configure the affected lines. Then just restart Varnish and you should be good to go.
+
+Config Cache Regeneration Locking
+==
+If you have a highly trafficled Magento store with many websites and store views, you're probably very afraid of flushing the cache. The reason for this is the time it takes to run [this method](https://github.com/OpenMage/magento-mirror/blob/magento-1.7/app/code/core/Mage/Core/Model/Resource/Config.php#L53) combined with the race conditions [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/App.php#L413) and [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/Config.php#L255). The Config model can be rewritten since [Magento 1.7](https://github.com/OpenMage/magento-mirror/blob/magento-1.7/app/Mage.php#L728) which is nice, but the App model has to be copied into app/code/local/. A version of the App model from 1.9.0.1/1.14.0.1 can be found [here](https://github.com/madepeople/Made_Cache/blob/feat_config_locking/src/code/Cache/Mage/Core/Model/App.php#L406-L478).
+
+Also, the bottom of index.php needs to be modified to use the custom Config model, like this:
+
+```php
+Mage::run($mageRunCode, $mageRunType, array(
+    'config_model' => 'Made_Cache_Model_Config'
+));
+```
+
+The values of `spin_timeout` and `lock_timeout` can be adjusted to a level that works with the amount of visitors and the time it takes to regenerate the configuration tree.
+
+So far this is a single instance lock in Redis, which does the job and lets us load balance. For super high performance with load balancing, a [distributed lock](http://redis.io/topics/distlock) should be implemented instead.
+
 FAQ
 ==
 
 Will Made\_Cache interfere with other modules?
 --
-Hopefully not. Events are used instead of block rewrites, and no core functionality is modified. This means that there will be less interference with other modules, and that manual block cache settings are preserved.
+Hopefully not. Events are used instead of block rewrites, and only one core model is rewritten, in a non-aggressive way. This means that there will be less interference with other modules, and that manual block cache settings are preserved.
 
 Another Varnish implementation?
 --
