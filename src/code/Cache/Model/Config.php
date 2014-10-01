@@ -40,7 +40,7 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
 
         // Spin lock
         $lockSpun = false;
-        while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['timeout'])) {
+        while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
             $lockSpun = true;
             usleep($options['spin_timeout']);
         }
@@ -73,7 +73,7 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
     {
         $options = array(
             'lock_name' => 'lock.config_init',
-            'timeout' => 30, // In seconds
+            'lock_timeout' => 30, // In seconds
             'spin_timeout' => 10000 // 10 ms, uses usleep()
         );
         $options['token'] = md5($options['lock_name']);

@@ -423,11 +423,9 @@ class Mage_Core_Model_App
 
         $options = $this->_config->getLockingOptions();
 
-        $hash = substr(md5(microtime(true)), 0, 5);
-
         // Spin lock
         $lockSpun = false;
-        while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['timeout'], $lockSpun)) {
+        while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'], $lockSpun)) {
             $lockSpun = true;
             usleep($options['spin_timeout']);
         }
