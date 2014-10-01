@@ -1,6 +1,32 @@
 Magento Block Cache & Varnish extension
 ==
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Magento Block Cache & Varnish extension](#magento-block-cache-&-varnish-extension)
+  - [Why?](#why)
+  - [Features](#features)
+  - [Installation](#installation)
+  - [Magento Configuration](#magento-configuration)
+  - [Block Cache Modifiers](#block-cache-modifiers)
+- [Redis Cache & Sessions](#redis-cache-&-sessions)
+  - [Configuration](#configuration)
+- [Varnish, ESI & Sessions](#varnish-esi-&-sessions)
+  - [ESI](#esi)
+  - [General Configuration](#general-configuration)
+  - [Sessions](#sessions)
+- [Varnish Session Validation](#varnish-session-validation)
+  - [Initial Setup](#initial-setup)
+  - [Redis Configuration](#redis-configuration)
+- [Config Cache Regeneration Locking](#config-cache-regeneration-locking)
+- [FAQ](#faq)
+  - [Will Made\_Cache interfere with other modules?](#will-made\_cache-interfere-with-other-modules)
+  - [Another Varnish implementation?](#another-varnish-implementation)
+  - [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 Why?
 --
 Few know that Magento out of the box actually doesn't cache any frontend blocks other than Navigation and Footer, which are basically static as they are. This module enhances performance by giving developers a simple interface for caching any block they want, and comes with good default settings.
@@ -16,13 +42,15 @@ Features
 
 Installation
 --
-Install this module either by using [modman](https://github.com/colinmollenhour/modman)
+Install this module either by:
 
-`modman clone git@github.com:madepeople/Made_Cache.git`
+1. Using [modman](https://github.com/colinmollenhour/modman)
 
-Or using composer.
+	`modman clone git@github.com:madepeople/Made_Cache.git`
 
-By downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html) (not always updated).
+2. Using [composer](https://github.com/magento-hackathon/magento-composer-installer)
+
+3. Downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html) (not always updated)
 
 Magento Configuration
 --
@@ -42,16 +70,12 @@ For instance, to cache the products.list block on every cms\_page for 7200 secon
 
 These tags exist:
 
-**cache** - Used to group which blocks should be cached
-
-**nocache** - Used to group which block should _not_ be cached
-
-**esi** (Varnish) - Generates an ESI tag in place of the block
-
-**noesi** (Varnish) - Excludes a block from the ESI tag generation
-
-**name** - Used inside the above to determine which blocks should be used
-
+* `cache`: Used to group which blocks should be cached
+* `nocache`: Used to group which block should _not_ be cached
+* `esi (Varnish)`: Generates an ESI tag in place of the block
+* `noesi (Varnish)`: Excludes a block from the ESI tag generation
+* `name`: Used inside the above to determine which blocks should be used
+ 
 See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
 
 Block Cache Modifiers
@@ -60,23 +84,17 @@ In order to keep the block caching flexible and allow for custom key generation 
 
 The default modifiers are:
 
-**cacheid** - The core cache id for the specific block
-
-**store** - Cache one version per store
-
-**currency** - Cache differently depending on currency
-
-**groupid** - Use the group ID
-
-**ssl** - SSL or no SSL, typically for blocks that include links
-
-**blocktype** - Custom built in modifier that uses different methods for different type of core blocks. See [Model/Modifier/Blocktype](https://github.com/madepeople/Made_Cache/tree/master/src/code/Cache/Model/Modifier/Blocktype)
-
-**request** - Use the request and it's parameters
+* `cacheid`: The core cache id for the specific block
+* `store`: Cache one version per store
+* `currency`: Cache differently depending on currency
+* `groupid`: Use the group ID
+* `ssl`: SSL or no SSL, typically for blocks that include links
+* `blocktype`: Custom built in modifier that uses different methods for different type of core blocks. See [Model/Modifier/Blocktype](https://github.com/madepeople/Made_Cache/tree/master/src/code/Cache/Model/Modifier/Blocktype)
+* `request`: Use the request and its parameters
 
 Modifiers are also a nice way to cache differently depending on layout handles and so on.
 
-Usage:
+Set it up like this:
 
 ```xml
 <layout version="0.1.0">
@@ -89,6 +107,68 @@ Usage:
 ```
 
 Custom modifiers can be defined [like this](https://github.com/madepeople/Made_Cache/blob/master/src/code/Cache/etc/config.xml#L25).
+
+Redis Cache & Sessions
+==
+In order to have full control over the caching, locking and sessions, I have developed custom implementations of these backends. The existing solutions suffer from locking timeouts and race conditions, as well as need garbage collection. This didn't suit me and gave me strange issues with load balancing.
+
+Configuration
+--
+
+To enable the cache and/or session handler, edit your local.xml:
+
+```xml
+<config>
+	<global>
+		<!-- ... -->
+		
+		<!--
+        <session_save><![CDATA[files]]></session_save>
+        -->
+        <session_save><![CDATA[db]]></session_save>
+        <models>
+            <core_resource>
+                <rewrite>
+                    <session>Made_Cache_Redis_Session</session>
+                </rewrite>
+            </core_resource>
+        </models>
+        <!-- Optional settings with defaults
+        <redis_session>
+            <hostname>127.0.0.1</hostname>
+            <database>2</database>
+            <prefix></prefix>
+            <port>6379</port>
+        </redis_session>
+        -->
+        <cache>
+            <backend>Made_Cache_Redis_Backend</backend>
+            <!-- Optional settings -->
+            <backend_options>            
+                <hostname>127.0.0.1</hostname>
+                <database>0</database>
+                <prefix></prefix>
+                <port>6379</port>
+            </backend_options>
+        </cache>
+        <!-- For Enterprise Edition >= 1.11 -->
+        <full_page_cache>
+            <backend>Made_Cache_Redis_Backend</backend>
+            <!-- Optional settings -->
+            <backend_options>
+                <hostname>127.0.0.1</hostname>
+                <database>1</database>
+                <prefix></prefix>
+                <port>6379</port>
+            </backend_options>            
+        </full_page_cache>
+        
+        <!-- ... -->
+    </global>
+</config>
+```
+
+It's recommended to set up the three different settings on completely different redis instances, since sessions should persist and cache generally shouldn't. Also, cache needs different memory limit/purge settngs. Also, you don't want a cache "FLUSHALL" to remove all sessions.
 
 Varnish, ESI & Sessions
 ==
