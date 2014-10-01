@@ -9,7 +9,7 @@
 <config>
     <modules>
         <Made_Cache>
-            <version>1.4.7</version>
+            <version>1.5.0</version>
         </Made_Cache>
     </modules>
     <global>
