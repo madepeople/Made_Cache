@@ -126,7 +126,19 @@ With vmod-redis in place, search for "redis" in the magento.vcl file and uncomme
 
 Config Cache Regeneration Locking
 ==
-If you have a highly trafficled Magento store with many websites and store views, you're probably very afraid of flushing the cache. The reason for this is race conditions [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/App.php#L413) and [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/Config.php#L255). The Config model can be rewritten since [Magento 1.7](https://github.com/OpenMage/magento-mirror/blob/magento-1.7/app/Mage.php#L728) which is nice, but the App model has to be copied into app/code/local/. A version of this from 1.9.0.1 can be found [here]()
+If you have a highly trafficled Magento store with many websites and store views, you're probably very afraid of flushing the cache. The reason for this is the time it takes to run [this method](https://github.com/OpenMage/magento-mirror/blob/magento-1.7/app/code/core/Mage/Core/Model/Resource/Config.php#L53) combined with the race conditions [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/App.php#L413) and [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/Config.php#L255). The Config model can be rewritten since [Magento 1.7](https://github.com/OpenMage/magento-mirror/blob/magento-1.7/app/Mage.php#L728) which is nice, but the App model has to be copied into app/code/local/. A version of the App model from 1.9.0.1/1.14.0.1 can be found [here](https://github.com/madepeople/Made_Cache/blob/feat_config_locking/src/code/Cache/Mage/Core/Model/App.php#L406-L478).
+
+Also, the bottom of index.php needs to be modified to use the custom Config model, like this:
+
+```php
+Mage::run($mageRunCode, $mageRunType, array(
+    'config_model' => 'Made_Cache_Model_Config'
+));
+```
+
+The values of `spin_timeout` and `lock_timeout` can be adjusted to a level that works with the amount of visitors and the time it takes to regenerate the configuration tree.
+
+So far this is a single instance lock in Redis, which does the job and lets us load balance. For super high performance with load balancing, a [distributed lock](http://redis.io/topics/distlock) should be implemented instead.
 
 FAQ
 ==
