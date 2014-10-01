@@ -16,11 +16,13 @@ Features
 
 Installation
 --
-Install this module using [modman](https://github.com/colinmollenhour/modman)
+Install this module either by using [modman](https://github.com/colinmollenhour/modman)
 
 `modman clone git@github.com:madepeople/Made_Cache.git`
 
-Or by downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html)
+Or using composer.
+
+By downloading a copy from [Magento Connect](http://www.magentocommerce.com/magento-connect/made-cache-9281.html) (not always updated).
 
 Magento Configuration
 --
