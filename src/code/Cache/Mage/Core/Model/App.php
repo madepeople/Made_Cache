@@ -427,26 +427,18 @@ class Mage_Core_Model_App
 
         // Spin lock
         $lockSpun = false;
-        Mage::log("$hash Acquiring lock");
         while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['timeout'], $lockSpun)) {
-            Mage::log("$hash Couldn't acquire lock, sleeping...");
             $lockSpun = true;
-            usleep(500000); // 0.5 seconds
+            usleep($options['spin_timeout']);
         }
-        Mage::log("$hash Lock acquired");
 
         if ($lockSpun) {
-            Mage::log("$hash Trying to see if cache has something");
             // The cache might have been generated while we waited for the lock
             if ($this->_config->loadModulesCache()) {
-                Mage::log("$hash It does!");
                 $backend->releaseLock($options['lock_name'], $options['token']);
                 return $this;
             }
-            Mage::log("$hash It doesn't");
         }
-
-        Mage::log("$hash Regenerating config cache");
 
         $this->_config->loadModules();
         if ($this->_config->isLocalConfigLoaded() && !$this->_shouldSkipProcessModulesUpdates()) {
@@ -458,7 +450,6 @@ class Mage_Core_Model_App
         $this->_config->saveCache();
 
         $backend->releaseLock($options['lock_name'], $options['token']);
-        Mage::log("$hash Lock released");
 
         return $this;
     }

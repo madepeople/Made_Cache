@@ -9,6 +9,8 @@ Features
 --
 * Quick & Versatile Performance Boost
 * Varnish + ESI support
+* High-performance Redis cache & session backends
+* Configuration regeneration locking
 * Unobtrusive & Future Proof
 * Simple Configuration
 
@@ -81,29 +83,12 @@ It is technically possible for Varnish to check the actual session storage direc
 
 Apart from these drawbacks, making Varnish to talk to the different storages isn't very straight forward.
 
-Given the above, I have experimented with using Redis and [CouchDB](https://github.com/madepeople/Made_CouchdbSession):
+Given the above, I have experimented with using Redis:
 
-CouchDB pros:
-
-* MVCC instead of locking gives performance and consistency
-* Queried via a HTTP interface that Varnish can talk to easily using libvmod-curl
-* A JavaScript _show_ function can be used to determine session validity inside of CouchDB itself, and return a boolean to Varnish. If the boolean is "true", we know it's safe to serve the visitor content from cache.
-
-CouchDB cons:
-
-* The compaction process takes a lot of time and can make the general performance suffer
-* Every request means a new write, meaning the size of the database grows rapidly
-
-Redis pros:
-
-* Build-in optimistic locking
-* In-memory with optional persistance
+* Built-in optimistic locking
+* In-memory with optional persistence
 * [A Varnish Redis client exists](https://github.com/brandonwamboldt/libvmod-redis)
-
-Redis cons:
-
-* An improperly configured Redis daemon can out of memory crash and make break a site
-
+* Very fast
 
 Varnish Session Validation
 ==
@@ -123,26 +108,9 @@ apt-get -b source varnish
 
 **IMPORTANT!** If an apt-get upgrade also upgrades varnish, you *have* to recompile libvmod-curl again, using the whole procedure from `apt-get -b source varnish` and forward.
 
-CouchDB Configuration
---
-First, install and configure [Made_CouchdbSession](https://github.com/madepeople/Made_CouchdbSession) and make sure it's working. After this, Varnish needs [libvmod-curl](https://github.com/varnish/libvmod-curl) installed. For reference, here are Debian instructions:
-
-```bash
-apt-get install libcurl3-dev
-git clone https://github.com/varnish/libvmod-curl.git
-cd libvmod-curl
-./autogen.sh
-./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
-make
-make install
-```
-
-With vmod-curl and the show function above in place, search for "curl" in the magento.vcl file and uncomment the affected lines. Then just restart Varnish and you should be good to go.
-
 Redis Configuration
 --
-
-We just need to install the redis vmod the same way as the curl vmod
+First, install and configure my [Redis session backend](https://github.com/madepeople/Made_Cache/blob/master/src/code/Cache/Redis/Session.php) and make sure it's working. After this, Varnish needs [libvmod-redis](https://github.com/brandonwamboldt/libvmod-redis) installed. For reference, here are Debian instructions:
 
 ```bash
 apt-get install libhiredis-dev
@@ -154,12 +122,18 @@ make
 make install
 ```
 
+With vmod-redis in place, search for "redis" in the magento.vcl file and uncomment and configure the affected lines. Then just restart Varnish and you should be good to go.
+
+Config Cache Regeneration Locking
+==
+If you have a highly trafficled Magento store with many websites and store views, you're probably very afraid of flushing the cache. The reason for this is race conditions [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/App.php#L413) and [here](https://github.com/OpenMage/magento-mirror/blob/magento-1.9/app/code/core/Mage/Core/Model/Config.php#L255). The Config model can be rewritten since [Magento 1.7](https://github.com/OpenMage/magento-mirror/blob/magento-1.7/app/Mage.php#L728) which is nice, but the App model has to be copied into app/code/local/. A version of this from 1.9.0.1 can be found [here]()
+
 FAQ
 ==
 
 Will Made\_Cache interfere with other modules?
 --
-Hopefully not. Events are used instead of block rewrites, and no core functionality is modified. This means that there will be less interference with other modules, and that manual block cache settings are preserved.
+Hopefully not. Events are used instead of block rewrites, and only one core model is rewritten, in a non-aggressive way. This means that there will be less interference with other modules, and that manual block cache settings are preserved.
 
 Another Varnish implementation?
 --
