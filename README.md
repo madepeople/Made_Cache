@@ -52,6 +52,42 @@ These tags exist:
 
 See [madecache.xml](https://github.com/madepeople/Made_Cache/blob/master/frontend/layout/madecache.xml) for more details.
 
+Block Cache Modifiers
+--
+In order to keep the block caching flexible and allow for custom key generation and timeouts, we're using so called Modifier classes. This lets us apply the same cache for the main product list as for a custom block with products in it, for instance. Modifiers typically build the final caching key, which defines how granular the block should be cached.
+
+The default modifiers are:
+
+**cacheid** - The core cache id for the specific block
+
+**store** - Cache one version per store
+
+**currency** - Cache differently depending on currency
+
+**groupid** - Use the group ID
+
+**ssl** - SSL or no SSL, typically for blocks that include links
+
+**blocktype** - Custom built in modifier that uses different methods for different type of core blocks. See [Model/Modifier/Blocktype](https://github.com/madepeople/Made_Cache/tree/master/src/code/Cache/Model/Modifier/Blocktype)
+
+**request** - Use the request and it's parameters
+
+Modifiers are also a nice way to cache differently depending on layout handles and so on.
+
+Usage:
+
+```xml
+<layout version="0.1.0">
+    <default>
+        <cache>
+            <name modifiers="store currency">block_that_differs_depending_on_store_and_currency</name>
+        </cache>
+    <default>
+</layout>
+```
+
+Custom modifiers can be defined [like this](https://github.com/madepeople/Made_Cache/blob/master/src/code/Cache/etc/config.xml#L25).
+
 Varnish, ESI & Sessions
 ==
 A custom magento.vcl file is available in the etc/ directory of the module. With Varnish in front and using this VCL, you can harness full page caching.
