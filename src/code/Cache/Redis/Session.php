@@ -177,7 +177,7 @@ class Made_Cache_Redis_Session
         $client->watch($id);
         $client->multi();
         $client->set($id, gzcompress(json_encode($data), 6));
-        $client->expire($id, time()+$this->_maxLifetime);
+        $client->expire($id, $this->_maxLifetime);
         $result = $client->exec();
         if (empty($result[0])) {
             return false;
