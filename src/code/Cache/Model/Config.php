@@ -2,7 +2,7 @@
 
 /**
  * Custom config model that leverages a redis lock to prevent config generation
- * DDOS, typically a problem when you have many store views and a high amount
+ * DDoS, typically a problem when you have many store views and a high amount
  * of visitors.
  *
  * Also depends on a local copy of Mage_Core_Model_App put in app/code/local.
@@ -14,6 +14,32 @@
  */
 class Made_Cache_Model_Config extends Mage_Core_Model_Config
 {
+
+    /**
+     * Reinitialize configuration. Make sure we don't end up here in case the
+     * config is already being regenerated
+     *
+     * @param   array $options
+     * @return  Mage_Core_Model_Config
+     */
+    public function reinit($options = array())
+    {
+        $backend = Mage::app()->getCacheInstance()
+            ->getFrontend()
+            ->getBackend();
+
+        $options = $this->getLockingOptions();
+
+        if ($backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
+            $this->_allowCacheForInit = false;
+            $this->_useCache = false;
+            $options['lock_acquired'] = true;
+            $this->init($options);
+            $backend->releaseLock($options['lock_name'], $options['token']);
+        }
+
+        return $this;
+    }
 
     /**
      * Initialization of core configuration
@@ -32,17 +58,19 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
             return $this;
         }
 
-        $backend = Mage::app()->getCacheInstance()
-            ->getFrontend()
-            ->getBackend();
-
-        $options = $this->getLockingOptions();
-
-        // Spin lock
         $lockSpun = false;
-        while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
-            $lockSpun = true;
-            usleep($options['spin_timeout']);
+        if (empty($options['lock_acquired'])) {
+            $backend = Mage::app()->getCacheInstance()
+                ->getFrontend()
+                ->getBackend();
+
+            $options = $this->getLockingOptions();
+
+            // Spin lock
+            while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
+                $lockSpun = true;
+                usleep($options['spin_timeout']);
+            }
         }
 
         if ($lockSpun) {
@@ -59,7 +87,9 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
         $this->loadDb();
         $this->saveCache();
 
-        $backend->releaseLock($options['lock_name'], $options['token']);
+        if (empty($options['lock_acquired'])) {
+            $backend->releaseLock($options['lock_name'], $options['token']);
+        }
 
         return $this;
     }
