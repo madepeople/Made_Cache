@@ -32,7 +32,7 @@ acl purge {
 # instance on a nonstandard port.
 #
 #sub vcl_init {
-#    redis.init("127.0.0.1", 6380, 200);
+#    redis.init_redis("127.0.0.1", 6380, 200);
 #    return(ok);
 #}
 
