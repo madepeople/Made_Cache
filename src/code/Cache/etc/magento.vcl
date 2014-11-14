@@ -94,16 +94,13 @@ sub vcl_recv {
         }
     }
 
-    # Keep track of logged in users
+    # Keep track of users with a session
     if (req.http.Cookie ~ "frontend=") {
         set req.http.X-Session-UUID =
             regsub(req.http.Cookie, ".*frontend=([^;]+).*", "\1");
-
-        if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") &&
-                !(req.url ~ "/madecache/varnish/(esi|messages)")) {
-            unset req.http.X-Session-UUID;
-            return(pass);
-        }
+    } else {
+        # No frontend cookie, goes straight to the backend
+        return(pass);
     }
 
     return (lookup);

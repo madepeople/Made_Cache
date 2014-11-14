@@ -58,7 +58,7 @@ class Made_Cache_Model_VarnishObserver
         $cookieModel = Mage::getSingleton('core/cookie');
         $cookieString = array(
             'magento_store=' . $websiteStoreCode,
-            'expires=' . date("l, d-M-y H:i:s T", time()+$cookieModel->getLifetime()),
+            'expires=' . date("l, d-M-y H:i:s T", time() + $cookieModel->getLifetime()),
             'path=' . $cookieModel->getPath(),
             'domain=' . $cookieModel->getDomain(),
             'httponly',
@@ -83,9 +83,9 @@ class Made_Cache_Model_VarnishObserver
         }
 
         $observer->getEvent()
-                ->getLayout()
-                ->getUpdate()
-                ->addHandle('varnish_enabled');
+            ->getLayout()
+            ->getUpdate()
+            ->addHandle('varnish_enabled');
     }
 
     /**
@@ -103,18 +103,17 @@ class Made_Cache_Model_VarnishObserver
 
         if ($block->getData('esi')) {
             $layoutHandles = $block->getLayout()->getUpdate()
-                    ->getHandles();
+                ->getHandles();
 
             $esiPath = 'madecache/varnish/esi'
-                    . '/hash/' . Mage::helper('cache/varnish')->getLayoutHash($block)
-                    . '/block/' . base64_encode($block->getNameInLayout())
-                    . '/layout/' . base64_encode(join(',', $layoutHandles))
-            ;
+                . '/hash/' . Mage::helper('cache/varnish')->getLayoutHash($block)
+                . '/block/' . base64_encode($block->getNameInLayout())
+                . '/layout/' . base64_encode(join(',', $layoutHandles));
 
             if (($product = Mage::registry('product')) !== null) {
                 $esiPath .= '/misc/' . base64_encode(serialize(array(
-                    'product' => $product->getId()
-                )));
+                        'product' => $product->getId()
+                    )));
             }
 
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
@@ -146,7 +145,8 @@ class Made_Cache_Model_VarnishObserver
         }
 
         if ($request->getModuleName() === 'madecache'
-                && $request->getControllerName() === 'varnish') {
+            && $request->getControllerName() === 'varnish'
+        ) {
             // It's stupid for ESI requests to clear themselves
             return;
         }
@@ -253,15 +253,16 @@ class Made_Cache_Model_VarnishObserver
      * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L133
      * @param Mage_Catalog_Model_Product $product
      */
-    protected function _getUrlsForProduct($product){
+    protected function _getUrlsForProduct($product)
+    {
         $urls = array();
 
         $store_id = $product->getStoreId();
 
         $routePath = 'catalog/product/view';
-        $routeParams['id']  = $product->getId();
-        $routeParams['s']   = $product->getUrlKey();
-        $routeParams['_store'] = (!$store_id ? 1: $store_id);
+        $routeParams['id'] = $product->getId();
+        $routeParams['s'] = $product->getUrlKey();
+        $routeParams['_store'] = (!$store_id ? 1 : $store_id);
         $url = Mage::getUrl($routePath, $routeParams);
         $urls[] = $url;
 
@@ -269,11 +270,11 @@ class Made_Cache_Model_VarnishObserver
         $rewrites = Mage::getModel('core/url_rewrite')->getCollection();
         if (!Mage::getConfig('catalog/seo/product_use_categories')) {
             $rewrites->getSelect()
-                    ->where("id_path = 'product/{$product->getId()}'");
+                ->where("id_path = 'product/{$product->getId()}'");
         } else {
             // Also show full links with categories
             $rewrites->getSelect()
-                    ->where("id_path = 'product/{$product->getId()}' OR id_path like 'product/{$product->getId()}/%'");
+                ->where("id_path = 'product/{$product->getId()}' OR id_path like 'product/{$product->getId()}/%'");
         }
         foreach ($rewrites as $r) {
             unset($routeParams);
@@ -294,13 +295,14 @@ class Made_Cache_Model_VarnishObserver
      *
      * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L171
      */
-    protected function _getUrlsForCategory($category) {
+    protected function _getUrlsForCategory($category)
+    {
         $urls = array();
         $routePath = 'catalog/category/view';
 
         $store_id = $category->getStoreId();
-        $routeParams['id']  = $category->getId();
-        $routeParams['s']   = $category->getUrlKey();
+        $routeParams['id'] = $category->getId();
+        $routeParams['s'] = $category->getUrlKey();
         $routeParams['_store'] = (!$store_id ? 1 : $store_id); # Default store id is 1
         $url = Mage::getUrl($routePath, $routeParams);
         $urls[] = $url;
