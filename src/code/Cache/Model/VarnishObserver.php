@@ -333,6 +333,12 @@ class Made_Cache_Model_VarnishObserver
         $urls = array();
         $page = Mage::getModel('cms/page')->load($cmsPageId);
         if ($page->getId()) {
+            if (Mage::getStoreConfig('web/default/front') === 'cms') {
+                $defaultIdentifier = Mage::getStoreConfig('web/default/cms_home_page');
+                if ($defaultIdentifier === $page->getIdentifier()) {
+                    $urls[] = '/';
+                }
+            }
             $urls[] = '/' . $page->getIdentifier();
         }
 
