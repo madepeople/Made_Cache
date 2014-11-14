@@ -4,10 +4,6 @@
 #
 import std;
 
-# curl is needed for CouchDB session, redis for, well, Redis sessions.
-#import curl;
-#import redis;
-
 backend default {
     .host = "127.0.0.1";
     .port = "8080";
@@ -26,15 +22,6 @@ acl purge {
     "localhost";
     "127.0.0.1";
 }
-
-#
-# Uncomment this one if you use Redis for session validation and have the
-# instance on a nonstandard port.
-#
-#sub vcl_init {
-#    redis.init_redis("127.0.0.1", 6380, 200);
-#    return(ok);
-#}
 
 sub vcl_recv {
     # Purge specific object from the cache
@@ -112,30 +99,11 @@ sub vcl_recv {
         set req.http.X-Session-UUID =
             regsub(req.http.Cookie, ".*frontend=([^;]+).*", "\1");
 
-        #
-        # Redis Setup
-        #
-        # If you use Redis sessions you can include this snippet for instance
-        # session validation. The pro is that we know exactly who's allowed to
-        # see the backend or not and that it's not browser dependent. The con is
-        # that you need a configured Redis server set up to handle your
-        # sessions
-        #
-        # You need the Redis vmod to be installed and imported at the top of this
-        # file. If the session is invalid we pass the user to the backend.
-        #
-        #if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") &&
-        #        !(req.url ~ "/madecache/varnish/(esi|messages)")) {
-        #    set req.http.x-redis = redis.call("TTL " + req.http.X-Session-UUID);
-        #    if (req.http.x-redis == "-2") {
-        #        unset req.http.X-Session-UUID;
-        #        return(pass);
-        #    }
-        #}
-    } else {
-        # If you use a setup with couch or redis, uncomment the line below,
-        # otherwise keep it commented.
-        # return(pass);
+        if (!(req.url ~ "\.(css|js|jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv)$") &&
+                !(req.url ~ "/madecache/varnish/(esi|messages)")) {
+            unset req.http.X-Session-UUID;
+            return(pass);
+        }
     }
 
     return (lookup);
