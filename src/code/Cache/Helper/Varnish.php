@@ -20,8 +20,8 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     public function isInFront()
     {
         return !!Mage::app()->getFrontController()
-                ->getRequest()
-                ->getHeader('X-Varnish');
+            ->getRequest()
+            ->getHeader('X-Varnish');
     }
 
     /**
@@ -31,8 +31,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
      */
     public function shouldUse()
     {
-        return Mage::app()->useCache('varnish')
-                && $this->isInFront();
+        return Mage::app()->useCache('varnish') && $this->isInFront();
     }
 
     /**
@@ -191,7 +190,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
         $doc = new DOMDocument;
         $doc->loadXML($xml->asXML());
         $xpath = new DOMXpath($doc);
-        $nodeList = $xpath->query("//block[@name='".$block->getNameInLayout()."']");
+        $nodeList = $xpath->query("//block[@name='" . $block->getNameInLayout() . "']");
         return sha1($doc->saveXML($nodeList->item(0)));
     }
 
@@ -220,19 +219,21 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
         }
 
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/esi', $request)) {
-            // All ESI requests should have the same TTL as the session itself
-            return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime')) . 's';
+            // All ESI requests should have the same TTL - 1 as the session itself
+            return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime') - 1) . 's';
         }
 
         // Messages should only be cached if they are empty
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/messages', $request)
-            && Mage::helper('cache')->responseHasMessages()) {
+            && Mage::helper('cache')->responseHasMessages()
+        ) {
             return null;
         }
 
         $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
         if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
-                || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
+            || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)
+        ) {
             return null;
         }
 
@@ -260,9 +261,9 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
         }
 
         if (in_array($request->getModuleName(), $routes)
-                || in_array($request->getModuleName() . '/' . $request->getControllerName(), $routes)
-                || in_array($request->getModuleName() . '/' . $request->getControllerName() . '/' . $request->getActionName(), $routes))
-        {
+            || in_array($request->getModuleName() . '/' . $request->getControllerName(), $routes)
+            || in_array($request->getModuleName() . '/' . $request->getControllerName() . '/' . $request->getActionName(), $routes)
+        ) {
             return true;
         }
 
