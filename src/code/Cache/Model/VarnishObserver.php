@@ -161,7 +161,7 @@ class Made_Cache_Model_VarnishObserver
      */
     public function flush(Varien_Event_Observer $observer)
     {
-        if (!Mage::helper('cache/varnish')->shouldUse()) {
+        if (!Mage::app()->useCache('varnish')) {
             return;
         }
 
