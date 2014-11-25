@@ -21,7 +21,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => 0, // http://stackoverflow.com/questions/11776029/predis-is-giving-error-while-reading-line-from-server
+        'timeout' => '60', // http://stackoverflow.com/questions/11776029/predis-is-giving-error-while-reading-line-from-server
         'read_write_timeout' => 0,
         'prefix' => 'mc:',
         'database' => 0,
