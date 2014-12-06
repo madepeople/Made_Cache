@@ -113,7 +113,7 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
     public function responseHasMessages()
     {
         $layout = Mage::app()->getFrontController()->getAction()
-                ->getLayout();
+            ->getLayout();
 
         foreach (array('global_messages', 'messages') as $blockName) {
             if (($messagesBlock = $layout->getBlock($blockName)) !== false) {
@@ -123,8 +123,20 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
             }
         }
 
+        // Loop over the session thing and see if there are message collections
+        // with messages in them
+        foreach ($_SESSION as $key => $data) {
+            if (isset($data['messages'])
+                && $data['messages'] instanceof Mage_Core_Model_Message_Collection) {
+                $messages = $data['messages'];
+                if ($messages->count()) {
+                    return true;
+                }
+            }
+        }
+
         return (bool)Mage::getModel('core/message_collection')
-                ->count();
+            ->count();
     }
 
     /**
@@ -138,8 +150,8 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
         $resource = Mage::getSingleton('core/resource');
         $read = $resource->getConnection('core_read');
         $select = $read->select()
-                ->from($resource->getTableName('catalog/product_super_link'), array('product_id'))
-                ->where('parent_id IN(?)', $productIds);
+            ->from($resource->getTableName('catalog/product_super_link'), array('product_id'))
+            ->where('parent_id IN(?)', $productIds);
 
         $childIds = array();
         foreach ($read->fetchAll($select) AS $link) {

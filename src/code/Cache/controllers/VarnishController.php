@@ -38,14 +38,14 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
 
         $layout->generateXml();
         $blockNodes = $layout->getNode()
-                ->xpath('//*[@name="'.$blockName.'"]');
+            ->xpath('//*[@name="'.$blockName.'"]');
 
         if (!empty($blockNodes)) {
             foreach ($blockNodes as $node) {
                 $layout->generateBlocks($node, true);
             }
             $block = $layout->getBlock($blockName)
-                    ->setEsi(0);
+                ->setEsi(0);
             $this->getResponse()->setBody($block->toHtml());
         }
     }
@@ -62,8 +62,8 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
         }
 
         $messagesBlock = $this->getLayout()
-                ->createBlock('core/messages', 'messages')
-                ->setBypassVarnish(true);
+            ->createBlock('core/messages', 'messages')
+            ->setBypassVarnish(true);
 
         foreach ($_SESSION as $contents) {
             if (isset($contents['messages']) &&
@@ -81,7 +81,7 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
         }
 
         $this->getResponse()
-                ->setBody($messagesBlock->toHtml());
+            ->setBody($messagesBlock->toHtml());
     }
 
     /**
@@ -93,6 +93,6 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
     {
         // IE needs this, otherwise it won't accept cookies from an AJAX request
         $this->getResponse()
-                ->setHeader('P3P', 'CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"', true);
+            ->setHeader('P3P', 'CP="IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT"', true);
     }
 }

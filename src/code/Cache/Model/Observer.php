@@ -100,7 +100,7 @@ class Made_Cache_Model_Observer
     public function removeUencParam(Varien_Event_Observer $observer)
     {
         $request = $observer->getEvent()->getControllerAction()
-                ->getRequest();
+            ->getRequest();
 
         // To this day, the only used encoding type is PARAM_NAME_URL_ENCODED
         $key = Mage_Core_Controller_Varien_Action::PARAM_NAME_URL_ENCODED;
@@ -138,8 +138,8 @@ class Made_Cache_Model_Observer
         $shouldProfile = $this->_getShouldProfile();
         if ($shouldProfile === true) {
             $blockName = $observer->getEvent()
-                    ->getBlock()
-                    ->getNameInLayout();
+                ->getBlock()
+                ->getNameInLayout();
 
             Made_Cache_Model_Profiler::start($blockName);
         }
@@ -155,8 +155,8 @@ class Made_Cache_Model_Observer
         $shouldProfile = $this->_getShouldProfile();
         if ($shouldProfile === true) {
             $blockName = $observer->getEvent()
-                    ->getBlock()
-                    ->getNameInLayout();
+                ->getBlock()
+                ->getNameInLayout();
 
             Made_Cache_Model_Profiler::end($blockName);
         }

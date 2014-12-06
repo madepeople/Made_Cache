@@ -12,6 +12,10 @@
  */
 class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
 {
+    const USER_CACHE_TYPE_ALL = 'all';
+    const USER_CACHE_TYPE_ESI = 'esi';
+    const USER_CACHE_TYPE_MESSAGES = 'messages';
+
     /**
      * Determine if varnish is in front of Magento
      *
@@ -198,11 +202,22 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
      * Helper function that purges the user session cache for cached ESI
      * blocks
      */
-    public function purgeUserCache()
+    public function purgeUserCache($type = self::USER_CACHE_TYPE_ALL)
     {
         $sessionId = Mage::getSingleton('core/session')->getSessionId();
         if (!empty($sessionId)) {
-            $this->_callVarnish('/', 'BAN', array('X-Ban-String: req.url ~ madecache/varnish/(esi|messages) && req.http.X-Session-UUID == ' . $sessionId));
+            switch ($type) {
+                case self::USER_CACHE_TYPE_ALL:
+                    $url = 'madecache/varnish/(esi|messages)';
+                    break;
+                case self::USER_CACHE_TYPE_ESI:
+                    $url = 'madecache/varnish/esi';
+                    break;
+                case self::USER_CACHE_TYPE_MESSAGES:
+                    $url = 'madecache/varnish/messages';
+                    break;
+            }
+            $this->_callVarnish('/', 'BAN', array('X-Ban-String: req.url ~ ' . $url . ' && req.http.X-Session-UUID == ' . $sessionId));
         }
     }
 
@@ -224,17 +239,17 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
         }
 
         // Messages should only be cached if they are empty
-        if ($this->_matchRoutesAgainstRequest('madecache/varnish/messages', $request)
-            && Mage::helper('cache')->responseHasMessages()
-        ) {
-            return null;
-        }
-
-        $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
-        if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
-            || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)
-        ) {
-            return null;
+        if ($this->_matchRoutesAgainstRequest('madecache/varnish/messages', $request)) {
+            if (Mage::helper('cache')->responseHasMessages()) {
+                return null;
+            }
+        } else {
+            $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
+            if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
+                || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)
+            ) {
+                return null;
+            }
         }
 
         return Mage::getStoreConfig('cache/varnish/ttl');
@@ -253,16 +268,18 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
             $routes = explode("\n", $routes);
         }
 
+        $routesToMatch = array();
         foreach ($routes as $key => $handle) {
-            if (($handle = trim($handle)) === '') {
+            $handle = trim($handle);
+            if (empty($handle)) {
                 continue;
             }
-            $routes[$key] = $handle;
+            $routesToMatch[] = $handle;
         }
 
-        if (in_array($request->getModuleName(), $routes)
-            || in_array($request->getModuleName() . '/' . $request->getControllerName(), $routes)
-            || in_array($request->getModuleName() . '/' . $request->getControllerName() . '/' . $request->getActionName(), $routes)
+        if (in_array($request->getModuleName(), $routesToMatch)
+            || in_array($request->getModuleName() . '/' . $request->getControllerName(), $routesToMatch)
+            || in_array($request->getModuleName() . '/' . $request->getControllerName() . '/' . $request->getActionName(), $routesToMatch)
         ) {
             return true;
         }

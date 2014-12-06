@@ -9,28 +9,15 @@
  */
 class Made_Cache_Model_VarnishObserver
 {
+
+    const URL_CACHE_KEY_PREFIX = 'varnish_url_cache_key';
+
     /**
-     * Simple, default is 0 expiry meaning no caching. For every action that
-     * requires caching we add it explicitly. Static content is not within
-     * this scope.
+     * Storage of all block cache tags cached on the current page
      *
-     * @param Varien_Event_Observer $observer
+     * @var array
      */
-    public function initializeResponseHeaders(Varien_Event_Observer $observer)
-    {
-        // Only manipulate headers if Varnish is in front
-        if (!Mage::helper('cache/varnish')->shouldUse()) {
-            return;
-        }
-
-        $response = $observer->getEvent()
-            ->getControllerAction()
-            ->getResponse();
-
-        if (Mage::getStoreConfig('cache/varnish/debug')) {
-            $response->setHeader('X-Made-Cache-Debug', 1);
-        }
-    }
+    protected $_blockCacheTags = array();
 
     /**
      * Set TTL for varnish. Since we use ESI we only need to offer the
@@ -46,26 +33,20 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
-        $controller = $observer->getEvent()->getControllerAction();
+        $controller = $observer->getEvent()
+            ->getFront()
+            ->getAction();
+
+        $response = $controller->getResponse();
+        if (Mage::getStoreConfig('cache/varnish/debug')) {
+            $response->setHeader('X-Made-Cache-Debug', 1);
+        }
+
         $ttl = Mage::helper('cache/varnish')->getRequestTtl($controller->getRequest());
         if (empty($ttl)) {
             return;
         }
 
-        $websiteStoreCode = Mage::app()->getWebsite()->getCode()
-            . '_' . Mage::app()->getStore()->getCode();
-
-        $cookieModel = Mage::getSingleton('core/cookie');
-        $cookieString = array(
-            'magento_store=' . $websiteStoreCode,
-            'expires=' . date("l, d-M-y H:i:s T", time() + $cookieModel->getLifetime()),
-            'path=' . $cookieModel->getPath(),
-            'domain=' . $cookieModel->getDomain(),
-            'httponly',
-        );
-
-        $response = $controller->getResponse();
-        $response->setHeader('X-Magento-Store', join('; ', $cookieString), true);
         $response->setHeader('X-Made-Cache-Ttl', $ttl, true);
     }
 
@@ -102,19 +83,29 @@ class Made_Cache_Model_VarnishObserver
         $block = $observer->getEvent()->getBlock();
 
         if ($block->getData('esi')) {
-            $layoutHandles = $block->getLayout()->getUpdate()
-                ->getHandles();
+            if ($block->getEsiUnique()) {
+                $hash = Mage::helper('cache/varnish')->getLayoutHash($block);
+
+                $layoutHandles = $block->getLayout()->getUpdate()
+                    ->getHandles();
+                $layout = base64_encode(join(',', $layoutHandles));
+
+                if (($product = Mage::registry('product')) !== null) {
+                    $misc = array(
+                        'product' => $product->getId()
+                    );
+                }
+            } else {
+                $hash = 1;
+                $misc = array();
+                $layout = base64_encode('default');
+            }
 
             $esiPath = 'madecache/varnish/esi'
-                . '/hash/' . Mage::helper('cache/varnish')->getLayoutHash($block)
                 . '/block/' . base64_encode($block->getNameInLayout())
-                . '/layout/' . base64_encode(join(',', $layoutHandles));
-
-            if (($product = Mage::registry('product')) !== null) {
-                $esiPath .= '/misc/' . base64_encode(serialize(array(
-                        'product' => $product->getId()
-                    )));
-            }
+                . '/hash/' . $hash
+                . '/layout/' . $layout
+                . '/misc/' . base64_encode(serialize($misc));
 
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
             $transport = $observer->getEvent()->getTransport();
@@ -123,12 +114,11 @@ class Made_Cache_Model_VarnishObserver
     }
 
     /**
-     * Clear user-specific cache when at a non-cachable request because these
-     * are what modify the session
+     * Purge the messages ESI cache if the response actually has messages in it
      *
      * @param Varien_Event_Observer $observer
      */
-    public function purgeUserCache(Varien_Event_Observer $observer)
+    public function purgeMessagesCache(Varien_Event_Observer $observer)
     {
         // Only manipulate headers if Varnish is in front or if there isn't
         // a messages block in the layout
@@ -136,22 +126,10 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
-        $controller = $observer->getEvent()->getControllerAction();
-        $request = $controller->getRequest();
-        $ttl = Mage::helper('cache/varnish')->getRequestTtl($request);
-        if (!empty($ttl)) {
-            // Only purge for routes that don't cache
-            return;
+        if (Mage::helper('cache')->responseHasMessages()) {
+            Mage::helper('cache/varnish')
+                ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_MESSAGES);
         }
-
-        if ($request->getModuleName() === 'madecache'
-            && $request->getControllerName() === 'varnish'
-        ) {
-            // It's stupid for ESI requests to clear themselves
-            return;
-        }
-
-        Mage::helper('cache/varnish')->purgeUserCache();
     }
 
     /**
@@ -185,12 +163,10 @@ class Made_Cache_Model_VarnishObserver
     }
 
     /**
-     * Purge cache in Varnish including entity cache such as products,
-     * categories and CMS pages by doing lookups in the rewrite table
+     * Purge cache in Varnish using the block cache tag -> URL mapping. We use
+     * the block tags to keep track of things because all of that is already
+     * in place. Kind of the same way EE FPC does it, but different.
      *
-     * Uses code from magneto-varnish.
-     *
-     * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L65
      * @param Varien_Event_Observer $observer
      */
     public function purge(Varien_Event_Observer $observer)
@@ -199,151 +175,92 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
-        $tags = $observer->getEvent()->getTags();
-        $urls = array();
+        $tags = (array)$observer->getEvent()->getTags();
+        $allUrls = array();
 
-        // Compute the urls for affected entities
-        foreach ((array)$tags as $tag) {
-            $tag_fields = explode('_', $tag);
-            if (count($tag_fields) === 3) {
-                if ($tag_fields[1] == 'product') {
-                    // Get urls for product
-                    $product = Mage::getModel('catalog/product')->load($tag_fields[2]);
-                    $urls = array_merge($urls, $this->_getUrlsForProduct($product));
-                } elseif ($tag_fields[1] == 'category') {
-                    $category = Mage::getModel('catalog/category')->load($tag_fields[2]);
-                    $category_urls = $this->_getUrlsForCategory($category);
-                    $urls = array_merge($urls, $category_urls);
-                } elseif ($tag_fields[1] == 'page') {
-                    $urls = $this->_getUrlsForCmsPage($tag_fields[2]);
-                }
+        $cache = Mage::app()->getCache();
+        foreach ($tags as $cacheTag) {
+            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
+            $urls = $cache->load($cacheKey);
+            if ($urls === false) {
+                continue;
+            }
+            $urls = unserialize($urls);
+            $allUrls = array_merge($allUrls, $urls);
+        }
+
+        if (empty($allUrls)) {
+            return;
+        }
+
+        $errors = Mage::helper('cache/varnish')->ban($allUrls);
+
+        // Varnish purge messages should only appear in the backend
+        if (Mage::app()->getStore()->isAdmin()) {
+            if (!empty($errors)) {
+                Mage::getSingleton('adminhtml/session')->addError(
+                    "Some Varnish purges failed: <br/>" . implode("<br/>", $errors));
             }
         }
 
-        // Transform urls to relative urls
-        $relativeUrls = array();
-        foreach ($urls as $url) {
-            $relativeUrls[] = parse_url($url, PHP_URL_PATH);
+    }
+
+    /**
+     * Store the current URL in the hash of the different tags
+     *
+     * @param Varien_Event_Observer $observer
+     */
+    public function saveBlockTags(Varien_Event_Observer $observer)
+    {
+        // Ignore the mass including block_html tag
+        $ignoreTags = array(
+            Mage_Core_Block_Abstract::CACHE_GROUP,
+        );
+        $block = $observer->getBlock();
+        if ($block->getEsi() === 1) {
+            // ESI block tags shouldn't be part of the main requests
+            return;
         }
-
-        if (!empty($relativeUrls)) {
-            $relativeUrls = array_unique($relativeUrls);
-            $errors = Mage::helper('cache/varnish')->ban($relativeUrls);
-
-            // Varnish purge messages should only appear in the backend
-            if (Mage::app()->getStore()->isAdmin()) {
-                if (!empty($errors)) {
-                    Mage::getSingleton('adminhtml/session')->addError(
-                        "Some Varnish purges failed: <br/>" . implode("<br/>", $errors));
-                } else {
-                    Mage::getSingleton('adminhtml/session')->addSuccess(
-                        "The following URLs have been cleared from Varnish: <br/>&nbsp;&nbsp;" . implode(", ", $relativeUrls));
-                }
+        $cacheTags = $block->getCacheTags();
+        foreach ($cacheTags as $key => $val) {
+            if (in_array($val, $ignoreTags)) {
+                unset($cacheTags[$key]);
             }
         }
-
-        return $this;
+        if (empty($cacheTags)) {
+            // Nothing to add
+            return;
+        }
+        $blockCacheTags = array_merge($this->_blockCacheTags, $cacheTags);
+        $blockCacheTags = array_unique($blockCacheTags);
+        $this->_blockCacheTags = $blockCacheTags;
     }
 
     /**
-     * Returns all the urls related to product
+     * Store the URLs in redis with the tags
      *
-     * Uses code from magneto-varnish.
-     *
-     * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L133
-     * @param Mage_Catalog_Model_Product $product
+     * @param Varien_Event_Observer $observer
      */
-    protected function _getUrlsForProduct($product)
+    public function storeUrlTags(Varien_Event_Observer $observer)
     {
-        $urls = array();
-
-        $store_id = $product->getStoreId();
-
-        $routePath = 'catalog/product/view';
-        $routeParams['id'] = $product->getId();
-        $routeParams['s'] = $product->getUrlKey();
-        $routeParams['_store'] = (!$store_id ? 1 : $store_id);
-        $url = Mage::getUrl($routePath, $routeParams);
-        $urls[] = $url;
-
-        // Collect all rewrites
-        $rewrites = Mage::getModel('core/url_rewrite')->getCollection();
-        if (!Mage::getConfig('catalog/seo/product_use_categories')) {
-            $rewrites->getSelect()
-                ->where("id_path = 'product/{$product->getId()}'");
-        } else {
-            // Also show full links with categories
-            $rewrites->getSelect()
-                ->where("id_path = 'product/{$product->getId()}' OR id_path like 'product/{$product->getId()}/%'");
+        if (empty($this->_blockCacheTags)) {
+            // No cached blocks on the current page
+            return;
         }
-        foreach ($rewrites as $r) {
-            unset($routeParams);
-            $routePath = '';
-            $routeParams['_direct'] = $r->getRequestPath();
-            $routeParams['_store'] = $r->getStoreId();
-            $url = Mage::getUrl($routePath, $routeParams);
-            $urls[] = $url;
-        }
-
-        return $urls;
-    }
-
-    /**
-     * Returns all the urls pointing to the category
-     *
-     * Uses code from magneto-varnish.
-     *
-     * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L171
-     */
-    protected function _getUrlsForCategory($category)
-    {
-        $urls = array();
-        $routePath = 'catalog/category/view';
-
-        $store_id = $category->getStoreId();
-        $routeParams['id'] = $category->getId();
-        $routeParams['s'] = $category->getUrlKey();
-        $routeParams['_store'] = (!$store_id ? 1 : $store_id); # Default store id is 1
-        $url = Mage::getUrl($routePath, $routeParams);
-        $urls[] = $url;
-
-        // Collect all rewrites
-        $rewrites = Mage::getModel('core/url_rewrite')->getCollection();
-        $rewrites->getSelect()->where("id_path = 'category/{$category->getId()}'");
-        foreach ($rewrites as $r) {
-            unset($routeParams);
-            $routePath = '';
-            $routeParams['_direct'] = $r->getRequestPath();
-            $routeParams['_store'] = $r->getStoreId();
-            $routeParams['_nosid'] = True;
-            $url = Mage::getUrl($routePath, $routeParams);
-            $urls[] = $url;
-        }
-
-        return $urls;
-    }
-
-    /**
-     * Returns all urls related to this cms page
-     *
-     * Uses code from magneto-varnish.
-     *
-     * @see https://github.com/madalinoprea/magneto-varnish/blob/master/code/Varnish/Model/Observer.php#L201
-     */
-    protected function _getUrlsForCmsPage($cmsPageId)
-    {
-        $urls = array();
-        $page = Mage::getModel('cms/page')->load($cmsPageId);
-        if ($page->getId()) {
-            if (Mage::getStoreConfig('web/default/front') === 'cms') {
-                $defaultIdentifier = Mage::getStoreConfig('web/default/cms_home_page');
-                if ($defaultIdentifier === $page->getIdentifier()) {
-                    $urls[] = '/';
-                }
+        $cache = Mage::app()->getCache();
+        foreach ($this->_blockCacheTags as $cacheTag) {
+            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
+            $urls = $cache->load($cacheKey);
+            if ($urls === false) {
+                $urls = array();
+            } else {
+                $urls = unserialize($urls);
             }
-            $urls[] = '/' . $page->getIdentifier();
+            $urls[] = $_SERVER['REQUEST_URI'];
+            $urls = array_unique($urls);
+            $urls = serialize($urls);
+            $cache->save($urls, $cacheKey, array('FPC_VARNISH'));
         }
-
-        return $urls;
     }
+
 }

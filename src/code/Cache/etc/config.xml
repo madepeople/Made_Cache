@@ -143,29 +143,6 @@
                     </add_layout_handle>
                 </observers>
             </controller_action_layout_load_before>
-            <controller_action_predispatch>
-                <observers>
-                    <clear_cache_headers>
-                        <type>singleton</type>
-                        <class>cache/varnishObserver</class>
-                        <method>initializeResponseHeaders</method>
-                    </clear_cache_headers>
-                </observers>
-            </controller_action_predispatch>
-            <controller_action_postdispatch>
-                <observers>
-                    <set_varnish_headers>
-                        <type>singleton</type>
-                        <class>cache/varnishObserver</class>
-                        <method>setVarnishCacheHeaders</method>
-                    </set_varnish_headers>
-                    <purge_user_cache>
-                        <type>singleton</type>
-                        <class>cache/varnishObserver</class>
-                        <method>purgeUserCache</method>
-                    </purge_user_cache>
-                </observers>
-            </controller_action_postdispatch>
             <core_block_abstract_to_html_after>
                 <observers>
                     <cache_add_esi_tags>
@@ -189,6 +166,34 @@
                     </cache_profiler_start>
                 </observers>
             </core_block_abstract_to_html_before>
+            <made_cache_setup_block_after>
+                <observers>
+                    <varnish_save_block_tags>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>saveBlockTags</method>
+                    </varnish_save_block_tags>
+                </observers>
+            </made_cache_setup_block_after>
+            <controller_front_send_response_before>
+                <observers>
+                    <set_varnish_headers>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>setVarnishCacheHeaders</method>
+                    </set_varnish_headers>
+                    <purge_messages_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeMessagesCache</method>
+                    </purge_messages_cache>
+                    <varnish_store_url_tags>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>storeUrlTags</method>
+                    </varnish_store_url_tags>
+                </observers>
+            </controller_front_send_response_before>
         </events>
     </frontend>
     <adminhtml>
