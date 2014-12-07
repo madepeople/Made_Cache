@@ -10,8 +10,6 @@
 class Made_Cache_Model_VarnishObserver
 {
 
-    const URL_CACHE_KEY_PREFIX = 'varnish_url_cache_key';
-
     /**
      * Storage of all block cache tags cached on the current page
      *
@@ -101,11 +99,32 @@ class Made_Cache_Model_VarnishObserver
                 $layout = base64_encode('default');
             }
 
-            $esiPath = 'madecache/varnish/esi'
+            $esiPath = '/madecache/varnish/esi'
                 . '/block/' . base64_encode($block->getNameInLayout())
                 . '/hash/' . $hash
                 . '/layout/' . $layout
                 . '/misc/' . base64_encode(serialize($misc));
+
+            $esiDepends = $block->getEsiDepends();
+            if (!empty($esiDepends)) {
+                $tags = array();
+                foreach ($esiDepends as $depend) {
+                    switch ($depend) {
+                        case 'quote':
+                            $quoteId = Mage::getModel('checkout/session')->getQuote()
+                                ->getId();
+                            $tags[] = 'quote_' . $quoteId;
+                            break;
+                        case 'compare':
+                            // Implement me
+                            break;
+                        case 'wishlist':
+                            // Implement me
+                            break;
+                    }
+                }
+                Mage::helper('cache/varnish')->saveTagsUrl($tags, $esiPath);
+            }
 
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
             $transport = $observer->getEvent()->getTransport();
@@ -120,8 +139,8 @@ class Made_Cache_Model_VarnishObserver
      */
     public function purgeMessagesCache(Varien_Event_Observer $observer)
     {
-        // Only manipulate headers if Varnish is in front or if there isn't
-        // a messages block in the layout
+        // Only manipulate headers if Varnish is in front or if there are no
+        // messages in the session
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
@@ -130,6 +149,21 @@ class Made_Cache_Model_VarnishObserver
             Mage::helper('cache/varnish')
                 ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_MESSAGES);
         }
+    }
+
+    /**
+     * Purge all user (session) specific ESI cache
+     *
+     * @param Varien_Event_Observer $observer
+     */
+    public function purgeUserCache(Varien_Event_Observer $observer)
+    {
+        if (!Mage::helper('cache/varnish')->shouldUse()) {
+            return;
+        }
+
+        Mage::helper('cache/varnish')
+            ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_ESI);
     }
 
     /**
@@ -176,19 +210,7 @@ class Made_Cache_Model_VarnishObserver
         }
 
         $tags = (array)$observer->getEvent()->getTags();
-        $allUrls = array();
-
-        $cache = Mage::app()->getCache();
-        foreach ($tags as $cacheTag) {
-            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $urls = $cache->load($cacheKey);
-            if ($urls === false) {
-                continue;
-            }
-            $urls = unserialize($urls);
-            $allUrls = array_merge($allUrls, $urls);
-        }
-
+        $allUrls = Mage::helper('cache/varnish')->getTagUrls($tags);
         if (empty($allUrls)) {
             return;
         }
@@ -202,7 +224,6 @@ class Made_Cache_Model_VarnishObserver
                     "Some Varnish purges failed: <br/>" . implode("<br/>", $errors));
             }
         }
-
     }
 
     /**
@@ -241,26 +262,12 @@ class Made_Cache_Model_VarnishObserver
      *
      * @param Varien_Event_Observer $observer
      */
-    public function storeUrlTags(Varien_Event_Observer $observer)
+    public function storeTagsUrl(Varien_Event_Observer $observer)
     {
         if (empty($this->_blockCacheTags)) {
             // No cached blocks on the current page
             return;
         }
-        $cache = Mage::app()->getCache();
-        foreach ($this->_blockCacheTags as $cacheTag) {
-            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $urls = $cache->load($cacheKey);
-            if ($urls === false) {
-                $urls = array();
-            } else {
-                $urls = unserialize($urls);
-            }
-            $urls[] = $_SERVER['REQUEST_URI'];
-            $urls = array_unique($urls);
-            $urls = serialize($urls);
-            $cache->save($urls, $cacheKey, array('FPC_VARNISH'));
-        }
+        Mage::helper('cache/varnish')->saveTagsUrl($this->_blockCacheTags);
     }
-
 }

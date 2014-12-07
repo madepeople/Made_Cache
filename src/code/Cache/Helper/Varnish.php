@@ -16,6 +16,8 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const USER_CACHE_TYPE_ESI = 'esi';
     const USER_CACHE_TYPE_MESSAGES = 'messages';
 
+    const URL_CACHE_KEY_PREFIX = 'varnish_url_cache_key';
+
     /**
      * Determine if varnish is in front of Magento
      *
@@ -39,15 +41,70 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Save the current URL with the supplied tags in cache, to clear on
+     * in the future
+     *
+     * @param $tags
+     * @param $url
+     */
+    public function saveTagsUrl($tags, $url = null)
+    {
+        if ($url === null) {
+            $url = $_SERVER['REQUEST_URI'];
+        }
+
+        $cache = Mage::app()->getCache();
+        foreach ($tags as $cacheTag) {
+            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
+            $urls = $cache->load($cacheKey);
+            if ($urls === false) {
+                $urls = array();
+            } else {
+                $urls = unserialize($urls);
+            }
+            $urls[] = $url;
+            $urls = array_unique($urls);
+            $urls = serialize($urls);
+            $cache->save($urls, $cacheKey, array('FPC_VARNISH'));
+        }
+    }
+
+    /**
+     * Get all URLs for the supplied tags to clear in Varnish
+     *
+     * @param $tags
+     * @return array
+     */
+    public function getTagUrls($tags)
+    {
+        $allUrls = array();
+
+        $cache = Mage::app()->getCache();
+        foreach ($tags as $cacheTag) {
+            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
+            $urls = $cache->load($cacheKey);
+            if ($urls === false) {
+                continue;
+            }
+            $urls = unserialize($urls);
+            $allUrls = array_merge($allUrls, $urls);
+        }
+
+        return $allUrls;
+    }
+
+    /**
      * Returns an array of defined Varnish servers
-     * @return type
+     *
+     * @return array
      */
     public function getServers()
     {
-        $serversConfig = preg_split('/[\r\n]+/', Mage::getStoreConfig('cache/varnish/servers'), null, PREG_SPLIT_NO_EMPTY);
+        $serversConfig = Mage::getStoreConfig('cache/varnish/servers');
+        $serversArray = preg_split('/[\r\n]+/', $serversConfig, null, PREG_SPLIT_NO_EMPTY);
         $servers = array();
 
-        foreach ($serversConfig as $server) {
+        foreach ($serversArray as $server) {
             $server = trim($server);
 
             // Skip new lines

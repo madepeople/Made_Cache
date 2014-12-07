@@ -49,7 +49,7 @@
             process for each product view.
         -->
         <esi>
-            <name>top.links</name>
+            <name depends="quote">top.links</name>
             <name>cart_sidebar</name>
             <name>catalog.compare.sidebar</name>
             <name>right.reports.product.compared</name>
