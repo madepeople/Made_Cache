@@ -101,8 +101,11 @@ sub vcl_recv {
         set req.http.X-Session-UUID =
             regsub(req.http.Cookie, ".*frontend=([^;]+).*", "\1");
     } else {
-        # No frontend cookie, goes straight to the backend
-        return(pass);
+        # No frontend cookie, goes straight to the backend except if static assets.
+        if (req.url ~ "\.(jpg|png|gif|gz|tgz|bz2|tbz|mp3|ogg|swf|flv|js|css)$") {
+            return(lookup);
+        }
+        set req.http.X-Session-UUID = "";
     }
 
     return (lookup);

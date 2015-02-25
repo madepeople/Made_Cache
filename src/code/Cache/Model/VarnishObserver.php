@@ -246,6 +246,11 @@ class Made_Cache_Model_VarnishObserver
             Mage_Core_Block_Abstract::CACHE_GROUP,
         );
         $block = $observer->getBlock();
+        $request = $block->getRequest();
+        if ($request->isPost()) {
+            // We never cache POST requests in varnish regardless
+            return;
+        }
         if ($block->getEsi() === 1) {
             // ESI block tags shouldn't be part of the main requests
             return;
