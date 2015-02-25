@@ -60,6 +60,17 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     }
 
     /**
+     * Expose the client so we can do custom magic directly Redis
+     *
+     * @see Made_Cache_Helper_Varnish::saveTagsUrl
+     * @return null|\Predis\Client
+     */
+    public function getClient()
+    {
+        return $this->_getClient();
+    }
+
+    /**
      * SSCAN away to find all keys in a set. We use sets because grouping
      * within the same prefix (means we can have different prefixes for normal
      * cache and the full page cache)

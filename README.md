@@ -12,10 +12,9 @@ Magento Block Cache & Varnish extension
   - [Block Cache Modifiers](#block-cache-modifiers)
 - [Redis Cache & Sessions](#redis-cache--sessions)
   - [Configuration](#configuration)
-- [Varnish, ESI & Sessions](#varnish-esi--sessions)
+- [Varnish & ESI](#varnish--sessions)
   - [ESI](#esi)
   - [General Configuration](#general-configuration)
-  - [Sessions](#sessions)
 - [Varnish Session Validation](#varnish-session-validation)
   - [Initial Setup](#initial-setup)
   - [Redis Configuration](#redis-configuration)
@@ -133,6 +132,7 @@ To enable the cache and/or session handler, edit your local.xml:
                 </rewrite>
             </core_resource>
         </models>
+        
         <!-- Optional settings with defaults
         <redis_session>
             <hostname>127.0.0.1</hostname>
@@ -141,6 +141,7 @@ To enable the cache and/or session handler, edit your local.xml:
             <port>6379</port>
         </redis_session>
         -->
+        
         <cache>
             <backend>Made_Cache_Redis_Backend</backend>
             <!-- Optional settings -->
@@ -149,8 +150,27 @@ To enable the cache and/or session handler, edit your local.xml:
                 <database>0</database>
                 <prefix></prefix>
                 <port>6379</port>
+                <database_varnish>2</database_varnish>
             </backend_options>
         </cache>
+        
+        <!-- Optional, if Varnish is in front, we can use 
+             Redis to store block cache tags paired with URLs
+             stored in Varnish in order to clean them using
+             core cache clean methods. 
+
+			 This instance *HAS* to be configured on a separate
+			 Redis DB or instance because it uses FLUSHDB to
+			 clear out old tags on cache flush. -->
+        <cache_varnish>
+            <backend>Made_Cache_Redis_Backend</backend>
+            <backend_options>
+                <hostname>127.0.0.1</hostname>
+                <database>2</database>
+                <port>6381</port>
+            </backend_options>
+        </cache_varnish>
+
         <!-- For Enterprise Edition >= 1.11 -->
         <full_page_cache>
             <backend>Made_Cache_Redis_Backend</backend>
@@ -170,7 +190,7 @@ To enable the cache and/or session handler, edit your local.xml:
 
 It's recommended to set up the three different settings on completely different redis instances, since sessions should persist and cache generally shouldn't. Also, cache needs different memory limit/purge settngs. Also, you don't want a cache "FLUSHALL" to remove all sessions.
 
-Varnish, ESI & Sessions
+Varnish & ESI
 ==
 A custom magento.vcl file is available in the etc/ directory of the module. With Varnish in front and using this VCL, you can harness full page caching.
 
@@ -188,59 +208,6 @@ General Configuration
 * Flush everything
 
 The layout handle _varnish\_enabled_ is added to every request when Varnish is in front.
-
-Sessions
---
-Because Varnish sits in front of Magento itself, we need to have a way to validate sessions, otherwise Varnish has to pass every request to the backend as soon as a session is in place. Out of the box, this module adds a special cookie AJAX request to the bottom of the page which will send a new session if the visitor doesn't have one. This approach means that there will *always* be a request to the backend. The effect is that the user gets the idea of a super-fast loading page, but your backend still gets hit and might not be able to handle the thousands of requests you want it to.
-
-It is technically possible for Varnish to check the actual session storage directly in the actual VCL, but this methodThere are different sessions storage mechanisms available for Magento. Each with their own drawbacks:
-
-* **Files** - Hard to distribute on a network, and has locking issues
-* **Memcache** - Fast, but no persistence and no locking
-* **MySQL** - Has persistence and locking, but performance is subject to all query noise that Magento creates
-
-Apart from these drawbacks, making Varnish to talk to the different storages isn't very straight forward.
-
-Given the above, I have experimented with using Redis:
-
-* Built-in optimistic locking
-* In-memory with optional persistence
-* [A Varnish Redis client exists](https://github.com/brandonwamboldt/libvmod-redis)
-* Very fast
-
-Varnish Session Validation
-==
-
-Initial Setup
---
-We will be using Debian/Ubuntu steps for reference. First of all the sources to a built Varnish package need to exist since we want to build VMODs.
-
-```bash
-apt-get update
-apt-get install build-essential dpkg-dev debhelper libedit-dev libncurses-dev libpcre3-dev python-docutils xsltproc libvarnishapi-dev autoconf automake autotools-dev libtool pkg-config
-
-mkdir -p varnish/out
-cd varnish
-apt-get -b source varnish
-```
-
-**IMPORTANT!** If an apt-get upgrade also upgrades varnish, you *have* to recompile libvmod-curl again, using the whole procedure from `apt-get -b source varnish` and forward.
-
-Redis Configuration
---
-First, install and configure my [Redis session backend](https://github.com/madepeople/Made_Cache/blob/master/src/code/Cache/Redis/Session.php) and make sure it's working. After this, Varnish needs [libvmod-redis](https://github.com/brandonwamboldt/libvmod-redis) installed. For reference, here are Debian instructions:
-
-```bash
-apt-get install libhiredis-dev
-git clone https://github.com/brandonwamboldt/libvmod-redis.git
-cd libvmod-redis
-./autogen.sh
-./configure --prefix=$PWD/../out VARNISHSRC=../varnish-*
-make
-make install
-```
-
-With vmod-redis in place, search for "redis" in the magento.vcl file and uncomment and configure the affected lines. Then just restart Varnish and you should be good to go.
 
 Config Cache Regeneration Locking
 ==

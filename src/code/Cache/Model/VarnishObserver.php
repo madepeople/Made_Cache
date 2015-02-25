@@ -186,7 +186,14 @@ class Made_Cache_Model_VarnishObserver
         }
 
         if ($flush) {
+            $cache = Made_Cache_Model_VarnishCache::getCacheInstance();
+            if ($cache !== false) {
+                // Flush the Redis block<->URL cache
+                $cache->getFrontend()
+                    ->clean(Zend_Cache::CLEANING_MODE_ALL, array());
+            }
             $errors = Mage::helper('cache/varnish')->flush();
+
             if (!empty($errors)) {
                 Mage::getSingleton('adminhtml/session')->addError("Varnish Purge failed: " . join(', ', $errors));
             } else {
@@ -215,11 +222,12 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
+        Mage::helper('cache/varnish')->cleanTagUrls($tags);
         $errors = Mage::helper('cache/varnish')->ban($allUrls);
 
         // Varnish purge messages should only appear in the backend
-        if (Mage::app()->getStore()->isAdmin()) {
-            if (!empty($errors)) {
+        if (!empty($errors)) {
+            if (Mage::app()->getStore()->isAdmin()) {
                 Mage::getSingleton('adminhtml/session')->addError(
                     "Some Varnish purges failed: <br/>" . implode("<br/>", $errors));
             }

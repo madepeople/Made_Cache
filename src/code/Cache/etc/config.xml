@@ -221,15 +221,6 @@
                     </clear_varnish_user_cache>
                 </observers>
             </customer_logout>
-            <sales_quote_item_qty_set_after>
-                <observers>
-                    <clear_varnish_user_cache>
-                        <type>singleton</type>
-                        <class>cache/varnishObserver</class>
-                        <method>purgeUserCache</method>
-                    </clear_varnish_user_cache>
-                </observers>
-            </sales_quote_item_qty_set_after>
             <catalog_product_compare_add_product>
                 <observers>
                     <clear_varnish_user_cache>
@@ -257,6 +248,15 @@
                     </clear_varnish_user_cache>
                 </observers>
             </catalog_product_compare_item_collection_clear>
+            <sales_quote_save_after>
+                <observers>
+                    <cache_quote_save_after>
+                        <type>singleton</type>
+                        <class>cache/observer</class>
+                        <method>clearQuoteCache</method>
+                    </cache_quote_save_after>
+                </observers>
+            </sales_quote_save_after>
         </events>
     </frontend>
     <adminhtml>

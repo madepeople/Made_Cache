@@ -22,6 +22,22 @@ class Made_Cache_Model_Modifier_Blocktype_Checkout
     }
 
     /**
+     * Get the correct quote ID tag for the cart block to cache
+     *
+     * @param Mage_Checkout_Block_Cart_Abstract $block
+     * @return mixed
+     */
+    protected function _getTags(Mage_Checkout_Block_Cart_Abstract $block)
+    {
+        $quote = $this->_getQuote($block);
+        $tags = $quote->getCacheIdTags();
+        if (empty($tags)) {
+            $tags = array('quote_' . $quote->getId());
+        }
+        return $tags;
+    }
+
+    /**
      * Don't cache this block if there is no quote item set. We can't call
      * hasItems because it's too costly
      *
@@ -35,11 +51,11 @@ class Made_Cache_Model_Modifier_Blocktype_Checkout
         }
 
         // Set cache tags
-        $quote = $this->_getQuote($block);
-        $tags = $quote->getCacheIdTags();
+        $tags = $this->_getTags($block);
         $block->setData('cache_tags', $tags);
 
         // Set cache keys
+        $quote = $this->_getQuote($block);
         $keys = $block->getCacheKeys();
         $keys[] = $quote->getId();
         $block->setData('cache_keys', $keys);

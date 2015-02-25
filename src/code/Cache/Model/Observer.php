@@ -183,4 +183,22 @@ class Made_Cache_Model_Observer
 
         Mage::app()->cleanCache($tags);
     }
+
+    /*
+     * Clear quote cache on custom tag. This is needed for older versions of
+     * Magento, i'm keeping it for plug and playility
+     *
+     * @param Varien_Event_Observer $observer
+     */
+    public function clearQuoteCache(Varien_Event_Observer $observer)
+    {
+        // Only runs when there is an active quote in the session
+        $object = $observer->getEvent()->getQuote();
+        $tags = $object->getCacheIdTags();
+        if (empty($tags)) {
+            // Older versions of Magento needs this
+            $tags = array('quote_' . $object->getId());
+        }
+        Mage::app()->cleanCache($tags);
+    }
 }

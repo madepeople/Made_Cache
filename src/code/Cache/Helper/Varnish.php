@@ -16,7 +16,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const USER_CACHE_TYPE_ESI = 'esi';
     const USER_CACHE_TYPE_MESSAGES = 'messages';
 
-    const URL_CACHE_KEY_PREFIX = 'varnish_url_cache_key';
+    const URL_CACHE_KEY_PREFIX = 'varnish_url_';
 
     /**
      * Determine if varnish is in front of Magento
@@ -41,8 +41,32 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Gets the Redis client in use for the Varnish backend
+     *
+     * @return bool|null|\Predis\Client
+     */
+    protected function _getRedisClient()
+    {
+        $cache = Made_Cache_Model_VarnishCache::getCacheInstance();
+        if ($cache === false) {
+            return false;
+        }
+
+        $backend = $cache->getFrontend()
+            ->getBackend();
+
+        if (!($backend instanceof Made_Cache_Redis_Backend)) {
+            return false;
+        }
+
+        $client = $backend->getClient();
+        return $client;
+    }
+
+    /**
      * Save the current URL with the supplied tags in cache, to clear on
-     * in the future
+     * in the future. We store all tags as Redis SETs because that gives us
+     * epic performance
      *
      * @param $tags
      * @param $url
@@ -53,19 +77,14 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
             $url = $_SERVER['REQUEST_URI'];
         }
 
-        $cache = Mage::app()->getCache();
+        $client = $this->_getRedisClient();
+        if ($client === false) {
+            return;
+        }
+
         foreach ($tags as $cacheTag) {
             $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $urls = $cache->load($cacheKey);
-            if ($urls === false) {
-                $urls = array();
-            } else {
-                $urls = unserialize($urls);
-            }
-            $urls[] = $url;
-            $urls = array_unique($urls);
-            $urls = serialize($urls);
-            $cache->save($urls, $cacheKey, array('FPC_VARNISH'));
+            $client->sadd($cacheKey, $url);
         }
     }
 
@@ -79,18 +98,40 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     {
         $allUrls = array();
 
-        $cache = Mage::app()->getCache();
+        $client = $this->_getRedisClient();
+        if ($client === false) {
+            return $allUrls;
+        }
+
         foreach ($tags as $cacheTag) {
             $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $urls = $cache->load($cacheKey);
+            $urls = $client->smembers($cacheKey);
             if ($urls === false) {
                 continue;
             }
-            $urls = unserialize($urls);
             $allUrls = array_merge($allUrls, $urls);
         }
 
         return $allUrls;
+    }
+
+    /**
+     * Get all URLs for the supplied tags to clear in Varnish
+     *
+     * @param $tags
+     * @return array
+     */
+    public function cleanTagUrls($tags)
+    {
+        $client = $this->_getRedisClient();
+        if ($client === false) {
+            return;
+        }
+
+        foreach ($tags as $cacheTag) {
+            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
+            $client->del($cacheKey);
+        }
     }
 
     /**
