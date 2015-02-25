@@ -159,9 +159,9 @@ To enable the cache and/or session handler, edit your local.xml:
              stored in Varnish in order to clean them using
              core cache clean methods. 
 
-			 This instance *HAS* to be configured on a separate
-			 Redis DB or instance because it uses FLUSHDB to
-			 clear out old tags on cache flush. -->
+             This instance *HAS* to be configured on a separate
+             Redis DB or instance because it uses FLUSHDB to
+             clear out old tags on cache flush. -->
         <cache_varnish>
             <backend>Made_Cache_Redis_Backend</backend>
             <backend_options>
