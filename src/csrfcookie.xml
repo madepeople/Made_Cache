@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding="utf-8" ?>
+<config>
+    <global>
+        <!-- This file belongs in the app/etc directory. You might want to
+             comment this out if you're using Enterprise Edition as it has its
+             own implementation of it -->
+        <cache>
+            <request_processors>
+                <csrfcookie>Made_Cache_Model_CsrfProcessor</csrfcookie>
+            </request_processors>
+        </cache>
+    </global>
+</config>

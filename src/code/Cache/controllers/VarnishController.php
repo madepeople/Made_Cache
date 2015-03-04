@@ -44,9 +44,11 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
             foreach ($blockNodes as $node) {
                 $layout->generateBlocks($node, true);
             }
+
             $block = $layout->getBlock($blockName)
-                ->setEsi(0)
-                ->setCacheModifiers('store blocktype ssl');
+                ->setEsi(0);
+            $modifiers = Mage::helper('cache')->getBlockModifiers($block);
+            $block->setCacheModifiers($modifiers);
             $this->getResponse()->setBody($block->toHtml());
         }
     }

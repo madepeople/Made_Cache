@@ -1,3 +1,4 @@
+src/csrfcookie.xml              app/etc/
 src/code/*                      app/code/community/Made/
 src/lib/*                       lib/
 src/frontend/layout/*           app/design/frontend/base/default/layout/made/

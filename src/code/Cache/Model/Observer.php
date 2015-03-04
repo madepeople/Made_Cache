@@ -201,4 +201,41 @@ class Made_Cache_Model_Observer
         }
         Mage::app()->cleanCache($tags);
     }
+
+    /**
+     * Replace the CSRF key in the body with a customer placeholder
+     *
+     * @param Varien_Event_Observer $observer
+     */
+    public function replaceCsrfKey(Varien_Event_Observer $observer)
+    {
+        $formKey = Mage::getSingleton('core/session')->getFormKey();
+        if (empty($formKey)) {
+            // Older version of magento or simply no form key
+            return;
+        }
+
+        $frontController = $observer->getEvent()->getFront();
+        $response = $frontController->getResponse();
+        $body = $response->getBody();
+        $body = str_replace($formKey, Made_Cache_Model_CsrfProcessor::CSRF_PLACEHOLDER, $body);
+        $response->setBody($body);
+    }
+
+    /**
+     * Replace the custom placeholder with the CSRF key stored in a cookie
+     *
+     * @param Varien_Event_Observer $observer
+     */
+    public function restoreCsrfKey(Varien_Event_Observer $observer)
+    {
+        $formKey = isset($_COOKIE[Made_Cache_Model_CsrfProcessor::CSRF_KEY])
+            ? $_COOKIE[Made_Cache_Model_CsrfProcessor::CSRF_KEY]
+            : false;
+
+        if ($formKey !== false) {
+            $session = Mage::getSingleton('core/session');
+            $session->setData('_form_key', $formKey);
+        }
+    }
 }

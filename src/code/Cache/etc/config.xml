@@ -187,8 +187,20 @@
                         <class>cache/varnishObserver</class>
                         <method>purgeMessagesCache</method>
                     </purge_messages_cache>
+                    <replace_csrf_key>
+                        <class>cache/observer</class>
+                        <method>replaceCsrfKey</method>
+                    </replace_csrf_key>
                 </observers>
             </controller_front_send_response_before>
+            <controller_action_predispatch>
+                <observers>
+                    <restore_csrf_key>
+                        <class>cache/observer</class>
+                        <method>restoreCsrfKey</method>
+                    </restore_csrf_key>
+                </observers>
+            </controller_action_predispatch>
             <customer_customer_authenticated>
                 <observers>
                     <clear_varnish_user_cache>
