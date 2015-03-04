@@ -10,6 +10,8 @@
 class Made_Cache_Model_VarnishObserver
 {
 
+    const FORM_KEY_PLACEHOLDER = '_FORM_KEY_PLACEHOLDER';
+
     /**
      * Storage of all block cache tags cached on the current page
      *
@@ -101,7 +103,7 @@ class Made_Cache_Model_VarnishObserver
             } else {
                 $hash = 1;
                 $misc = array();
-                $layout = base64_encode('default');
+                $layout = base64_encode('default,varnish_enabled');
             }
 
             $esiPath = '/madecache/varnish/esi'
@@ -109,26 +111,6 @@ class Made_Cache_Model_VarnishObserver
                 . '/hash/' . $hash
                 . '/layout/' . $layout
                 . '/misc/' . base64_encode(serialize($misc));
-
-            $esiDepends = $block->getEsiDepends();
-            if (!empty($esiDepends)) {
-                $tags = array();
-                foreach ($esiDepends as $depend) {
-                    switch ($depend) {
-                        case 'quote':
-                            $quoteId = Mage::getModel('checkout/session')->getQuote()
-                                ->getId();
-                            $tags[] = 'quote_' . $quoteId;
-                            break;
-                        case 'compare':
-                            // Implement me
-                            break;
-                        case 'wishlist':
-                            // Implement me
-                            break;
-                    }
-                }
-            }
 
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
             $transport = $observer->getEvent()->getTransport();
@@ -267,5 +249,119 @@ class Made_Cache_Model_VarnishObserver
         $blockCacheTags = array_merge($this->_blockCacheTags, $cacheTags);
         $blockCacheTags = array_unique($blockCacheTags);
         $this->_blockCacheTags = $blockCacheTags;
+    }
+
+    /**
+     * Sessions that don't exist can't be hi-jacked, so we simply pass them
+     * through
+     *
+     * @param Varien_Event_Observer $observer
+     * @see replaceFormKeyPlaceholder
+     */
+    public function anonymousPassthrough(Varien_Event_Observer $observer)
+    {
+        if (!Mage::helper('cache/varnish')->shouldUse()) {
+            return;
+        }
+
+        if (Mage::registry('esi_action')) {
+            // Don't do this for ESI actions as they need the correct key
+            return;
+        }
+
+        if (empty($_COOKIE['frontend'])) {
+            // No frontend session yet, which means there is nothing to hi-jack
+            // and we are allowed to pass the request through
+            $formKey = 'pass-through';
+            $session = Mage::getSingleton('core/session');
+            $session->setData('_form_key', $formKey);
+            $frontController = $observer->getEvent()->getControllerAction();
+            $request = $frontController->getRequest();
+            $request->setPost('form_key', $formKey);
+            $request->setParam('form_key', $formKey);
+        }
+    }
+
+    /**
+     * Replaces the form key value with a placeholder soon to be replaced
+     * by an ESI tag
+     *
+     * @param Varien_Event_Observer $observer
+     * @see replaceFormKeyPlaceholder
+     */
+    public function replaceFormKey(Varien_Event_Observer $observer)
+    {
+        if (!Mage::helper('cache/varnish')->shouldUse()) {
+            return;
+        }
+
+        if (Mage::registry('esi_action')) {
+            // Don't do this for ESI actions as they need the correct key
+            return;
+        }
+
+        $session = Mage::getSingleton('core/session');
+
+        // Generate a real form key first so it can be fetched by ESI requests
+        $currentFormKey = $session->getData('_form_key');
+        if ($currentFormKey === 'pass-through') {
+            $session->unsetData('_form_key');
+        }
+        $realFormKey = $session->getFormKey();
+
+        // Then just replace it
+        $session->setData('_form_key', self::FORM_KEY_PLACEHOLDER);
+        $session->setData('_real_form_key', $realFormKey);
+    }
+
+    /**
+     * Resets the form key back to the real one instead of the place holder,
+     * since all blocks should have been rendered and the session hasn't been
+     * written yet
+     *
+     * @param Varien_Event_Observer $observer
+     */
+    public function resetFormKey(Varien_Event_Observer $observer)
+    {
+        $session = Mage::getSingleton('core/session');
+        $realFormKey = $session->getData('_real_form_key');
+        if (!empty($realFormKey)) {
+            $session->setData('_form_key', $realFormKey);
+            $session->unsetData('_real_form_key');
+        }
+    }
+
+    /**
+     * Sets the form key placeholder to the ESI tag
+     *
+     * @param Varien_Event_Observer $observer
+     * @see replaceFormKey
+     */
+    public function replaceFormKeyPlaceholder(Varien_Event_Observer $observer)
+    {
+        if (!Mage::helper('cache/varnish')->shouldUse()) {
+            return;
+        }
+
+        if (Mage::registry('esi_action')) {
+            // Don't do this for ESI actions as they need the correct key
+            return;
+        }
+
+        $formKeyBlock = Mage::app()->getLayout()
+            ->getBlock('varnish.form_key');
+
+        if (!$formKeyBlock) {
+            return;
+        }
+
+        $esiTag = $formKeyBlock->setEsi(1)
+            ->toHtml();
+
+        $frontController = $observer->getEvent()->getFront();
+        $response = $frontController->getResponse();
+        $body = $response->getBody();
+        $body = str_replace(self::FORM_KEY_PLACEHOLDER, $esiTag, $body);
+        $response->setBody($body);
     }
 }

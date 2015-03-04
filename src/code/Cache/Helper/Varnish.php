@@ -149,6 +149,7 @@ EOF;
 
             for ($i = 1; $i <= self::HTTP_TAG_HEADER_LIMIT; $i++) {
                 $header = 'X-Ban-String: obj.http.' . self::HTTP_TAG_PREFIX . '-' . $i . ' ~ ' . $tag;
+                Mage::log($header);
                 $status = array_merge($this->_callVarnish('/', 'BAN', array($header)), $status);
             }
         }

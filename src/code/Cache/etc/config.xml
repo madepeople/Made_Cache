@@ -134,6 +134,24 @@
             </modules>
         </translate>
         <events>
+            <controller_action_predispatch>
+                <observers>
+                    <varnish_anonymous_passthrough>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>anonymousPassthrough</method>
+                    </varnish_anonymous_passthrough>
+                </observers>
+            </controller_action_predispatch>
+            <controller_action_postdispatch>
+                <observers>
+                    <varnish_reset_form_key>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>resetFormKey</method>
+                    </varnish_reset_form_key>
+                </observers>
+            </controller_action_postdispatch>
             <controller_action_layout_load_before>
                 <observers>
                     <add_layout_handle>
@@ -141,6 +159,11 @@
                         <class>cache/varnishObserver</class>
                         <method>addLayoutHandle</method>
                     </add_layout_handle>
+                    <varnish_replace_form_key>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>replaceFormKey</method>
+                    </varnish_replace_form_key>
                 </observers>
             </controller_action_layout_load_before>
             <core_block_abstract_to_html_after>
@@ -187,8 +210,49 @@
                         <class>cache/varnishObserver</class>
                         <method>purgeMessagesCache</method>
                     </purge_messages_cache>
+                    <replace_form_key_placeholder>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>replaceFormKeyPlaceholder</method>
+                    </replace_form_key_placeholder>
                 </observers>
             </controller_front_send_response_before>
+            <checkout_cart_product_add_after>
+                <observers>
+                    <clear_varnish_user_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeUserCache</method>
+                    </clear_varnish_user_cache>
+                </observers>
+            </checkout_cart_product_add_after>
+            <checkout_cart_update_items_after>
+                <observers>
+                    <clear_varnish_user_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeUserCache</method>
+                    </clear_varnish_user_cache>
+                </observers>
+            </checkout_cart_update_items_after>
+            <checkout_cart_product_update_after>
+                <observers>
+                    <clear_varnish_user_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeUserCache</method>
+                    </clear_varnish_user_cache>
+                </observers>
+            </checkout_cart_product_update_after>
+            <checkout_cart_save_after>
+                <observers>
+                    <clear_varnish_user_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeUserCache</method>
+                    </clear_varnish_user_cache>
+                </observers>
+            </checkout_cart_save_after>
             <customer_customer_authenticated>
                 <observers>
                     <clear_varnish_user_cache>

@@ -49,12 +49,17 @@
             process for each product view.
         -->
         <esi>
-            <name depends="quote">top.links</name>
+            <name>top.links</name>
+            <name>checkout_cart_link</name>
+            <name>minicart_head</name>
             <name>cart_sidebar</name>
             <name>catalog.compare.sidebar</name>
             <name>right.reports.product.compared</name>
             <name>right.poll</name>
         </esi>
+
+        <!-- Handles CSRF token injection -->
+        <block type="cache/varnish_formKey" name="varnish.form_key"/>
 
         <!--
             Messages are fetched using ESI outside of the normal layout.
@@ -84,19 +89,4 @@
             <!--<block type="cache/varnish_footer" name="varnish_cache_footer" after="-"/>-->
         </reference>
     </varnish_enabled>
-
-    <checkout_onepage_index>
-        <nocache>
-            <name>root</name>
-            <name>content</name>
-        </nocache>
-    </checkout_onepage_index>
-
-    <!-- For use with Made_Streamcheckout, http://streamcheckout.com -->
-    <streamcheckout_index_index>
-        <nocache>
-            <name>root</name>
-            <name>content</name>
-        </nocache>
-    </streamcheckout_index_index>
 </layout>

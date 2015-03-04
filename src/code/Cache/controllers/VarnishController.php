@@ -9,6 +9,18 @@
  */
 class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
 {
+
+    /**
+     * Predispatch that helps us identify we're running ESI stuff
+     *
+     * @return Mage_Core_Controller_Front_Action
+     */
+    public function preDispatch()
+    {
+        Mage::register('esi_action', 1);
+        return parent::preDispatch();
+    }
+
     /**
      * Print specified block for its layout handle without the ESI tag
      */
@@ -45,8 +57,11 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
                 $layout->generateBlocks($node, true);
             }
             $block = $layout->getBlock($blockName)
-                ->setEsi(0)
-                ->setCacheModifiers('store blocktype ssl');
+                ->setEsi(0);
+
+            $cacheModifiers = Mage::helper('cache')
+                ->getBlockModifiers($block);
+            $block->setCacheModifiers($cacheModifiers);
             $this->getResponse()->setBody($block->toHtml());
         }
     }

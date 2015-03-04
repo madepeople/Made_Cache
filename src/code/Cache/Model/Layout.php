@@ -76,10 +76,8 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
                 $blockName = trim((string)$node);
                 // Names are unique, an array could hold future settings
                 $unique = trim((string)$node->getAttribute('unique'));
-                $depends = trim((string)$node->getAttribute('depends'));
                 $this->_esiBlocks[$blockName] = array(
                     'unique' => $unique,
-                    'depends' => explode(' ', $depends),
                 );
             }
         }
@@ -146,7 +144,6 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
         if (in_array($blockName, array_keys($this->_esiBlocks))) {
             $block->setData('esi', 1);
             $block->setData('esi_unique', $this->_esiBlocks[$blockName]['unique']);
-            $block->setData('esi_depends', $this->_esiBlocks[$blockName]['depends']);
         }
 
         return $this;
