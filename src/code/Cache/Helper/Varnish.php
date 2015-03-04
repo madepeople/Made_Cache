@@ -16,7 +16,9 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const USER_CACHE_TYPE_ESI = 'esi';
     const USER_CACHE_TYPE_MESSAGES = 'messages';
 
-    const URL_CACHE_KEY_PREFIX = 'varnish_url_';
+    const HTTP_HEADER_MAX_SIZE = 8192;
+    const HTTP_TAG_HEADER_LIMIT = 3;
+    const HTTP_TAG_PREFIX = 'X-Made-Cache-Tags';
 
     /**
      * Determine if varnish is in front of Magento
@@ -41,97 +43,47 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     }
 
     /**
-     * Gets the Redis client in use for the Varnish backend
-     *
-     * @return bool|null|\Predis\Client
-     */
-    protected function _getRedisClient()
-    {
-        $cache = Made_Cache_Model_VarnishCache::getCacheInstance();
-        if ($cache === false) {
-            return false;
-        }
-
-        $backend = $cache->getFrontend()
-            ->getBackend();
-
-        if (!($backend instanceof Made_Cache_Redis_Backend)) {
-            return false;
-        }
-
-        $client = $backend->getClient();
-        return $client;
-    }
-
-    /**
-     * Save the current URL with the supplied tags in cache, to clear on
-     * in the future. We store all tags as Redis SETs because that gives us
-     * epic performance
-     *
-     * @param $tags
-     * @param $url
-     */
-    public function saveTagsUrl($tags, $url = null)
-    {
-        if ($url === null) {
-            $url = $_SERVER['REQUEST_URI'];
-        }
-
-        $client = $this->_getRedisClient();
-        if ($client === false) {
-            return;
-        }
-
-        foreach ($tags as $cacheTag) {
-            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $client->sadd($cacheKey, $url);
-        }
-    }
-
-    /**
-     * Get all URLs for the supplied tags to clear in Varnish
+     * Returns an array of tags to store with the Varnish object in cache in
+     * order to clear routes using the same tags as Magento modules use
      *
      * @param $tags
      * @return array
      */
-    public function getTagUrls($tags)
+    public function getTagHeaders($tags)
     {
-        $allUrls = array();
+        $headers = array();
+        for ($i = 1; count($tags) > 0 && $i <= self::HTTP_TAG_HEADER_LIMIT;) {
+            $tag = array_pop($tags);
+            $header = self::HTTP_TAG_PREFIX . '-' . $i;
 
-        $client = $this->_getRedisClient();
-        if ($client === false) {
-            return $allUrls;
-        }
+            if (!isset($headers[$header])) {
+                $headers[$header] = '|';
+            }
 
-        foreach ($tags as $cacheTag) {
-            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $urls = $client->smembers($cacheKey);
-            if ($urls === false) {
+            $headerString = $headers[$header];
+            $headerString .= $tag . '|';
+
+            if (strlen($headerString) > self::HTTP_HEADER_MAX_SIZE) {
+                $i++;
+                $tags[] = $tag;
                 continue;
             }
-            $allUrls = array_merge($allUrls, $urls);
+
+            $headers[$header] = $headerString;
         }
 
-        return $allUrls;
-    }
+        if (count($tags)) {
+            $tagCount = count($tags);
+            $message =<<<EOF
+Too many block tags present, unable to store as HTTP headers in Varnish:
+    Request: {$_SERVER['REQUEST_URI']}
+    Number of remaining tags: $tagCount
+EOF;
 
-    /**
-     * Get all URLs for the supplied tags to clear in Varnish
-     *
-     * @param $tags
-     * @return array
-     */
-    public function cleanTagUrls($tags)
-    {
-        $client = $this->_getRedisClient();
-        if ($client === false) {
-            return;
+            Mage::log($message, null, 'made-cache.log');
         }
 
-        foreach ($tags as $cacheTag) {
-            $cacheKey = self::URL_CACHE_KEY_PREFIX . '_' . $cacheTag;
-            $client->del($cacheKey);
-        }
+        return $headers;
     }
 
     /**
@@ -179,6 +131,26 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
         foreach ($urls as $url) {
             $header = 'X-Ban-String: req.url ~ ' . $url;
             $status = array_merge($this->_callVarnish('/', 'BAN', array($header)), $status);
+        }
+        return $status;
+    }
+
+    /**
+     * Bans an URL or more from the Varnish cache using Magento cache tags
+     *
+     * @param string|array $urls
+     */
+    public function banTags($tags)
+    {
+        $tags = (array)$tags;
+        $status = array();
+        foreach ($tags as $tag) {
+            $tag = '\|' . $tag . '\|';
+
+            for ($i = 1; $i <= self::HTTP_TAG_HEADER_LIMIT; $i++) {
+                $header = 'X-Ban-String: obj.http.' . self::HTTP_TAG_PREFIX . '-' . $i . ' ~ ' . $tag;
+                $status = array_merge($this->_callVarnish('/', 'BAN', array($header)), $status);
+            }
         }
         return $status;
     }

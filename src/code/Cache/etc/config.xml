@@ -187,11 +187,6 @@
                         <class>cache/varnishObserver</class>
                         <method>purgeMessagesCache</method>
                     </purge_messages_cache>
-                    <varnish_store_tags_url>
-                        <type>singleton</type>
-                        <class>cache/varnishObserver</class>
-                        <method>storeTagsUrl</method>
-                    </varnish_store_tags_url>
                 </observers>
             </controller_front_send_response_before>
             <customer_customer_authenticated>

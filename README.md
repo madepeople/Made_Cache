@@ -154,23 +154,6 @@ To enable the cache and/or session handler, edit your local.xml:
             </backend_options>
         </cache>
         
-        <!-- Optional, if Varnish is in front, we can use 
-             Redis to store block cache tags paired with URLs
-             stored in Varnish in order to clean them using
-             core cache clean methods. 
-
-             This instance *HAS* to be configured on a separate
-             Redis DB or instance because it uses FLUSHDB to
-             clear out old tags on cache flush. -->
-        <cache_varnish>
-            <backend>Made_Cache_Redis_Backend</backend>
-            <backend_options>
-                <hostname>127.0.0.1</hostname>
-                <database>2</database>
-                <port>6381</port>
-            </backend_options>
-        </cache_varnish>
-
         <!-- For Enterprise Edition >= 1.11 -->
         <full_page_cache>
             <backend>Made_Cache_Redis_Backend</backend>

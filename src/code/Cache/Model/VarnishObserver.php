@@ -27,7 +27,8 @@ class Made_Cache_Model_VarnishObserver
     {
         // Only manipulate headers if Varnish is in front or if there isn't
         // a messages block in the layout
-        if (!Mage::helper('cache/varnish')->shouldUse()) {
+        $helper = Mage::helper('cache/varnish');
+        if (!$helper->shouldUse()) {
             return;
         }
 
@@ -40,11 +41,15 @@ class Made_Cache_Model_VarnishObserver
             $response->setHeader('X-Made-Cache-Debug', 1);
         }
 
-        $ttl = Mage::helper('cache/varnish')->getRequestTtl($controller->getRequest());
+        $ttl = $helper->getRequestTtl($controller->getRequest());
         if (empty($ttl)) {
             return;
         }
 
+        $tagHeaders = $helper->getTagHeaders($this->_blockCacheTags);
+        foreach ($tagHeaders as $header => $value) {
+            $response->setHeader($header, $value, true);
+        }
         $response->setHeader('X-Made-Cache-Ttl', $ttl, true);
     }
 
@@ -123,7 +128,6 @@ class Made_Cache_Model_VarnishObserver
                             break;
                     }
                 }
-                Mage::helper('cache/varnish')->saveTagsUrl($tags, $esiPath);
             }
 
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
@@ -212,18 +216,13 @@ class Made_Cache_Model_VarnishObserver
      */
     public function purge(Varien_Event_Observer $observer)
     {
-        if (!Mage::helper('cache/varnish')->shouldUse()) {
+        $helper = Mage::helper('cache/varnish');
+        if (!$helper->shouldUse()) {
             return;
         }
 
         $tags = (array)$observer->getEvent()->getTags();
-        $allUrls = Mage::helper('cache/varnish')->getTagUrls($tags);
-        if (empty($allUrls)) {
-            return;
-        }
-
-        Mage::helper('cache/varnish')->cleanTagUrls($tags);
-        $errors = Mage::helper('cache/varnish')->ban($allUrls);
+        $errors = $helper->banTags($tags);
 
         // Varnish purge messages should only appear in the backend
         if (!empty($errors)) {
@@ -263,19 +262,5 @@ class Made_Cache_Model_VarnishObserver
         $blockCacheTags = array_merge($this->_blockCacheTags, $cacheTags);
         $blockCacheTags = array_unique($blockCacheTags);
         $this->_blockCacheTags = $blockCacheTags;
-    }
-
-    /**
-     * Store the URLs in redis with the tags
-     *
-     * @param Varien_Event_Observer $observer
-     */
-    public function storeTagsUrl(Varien_Event_Observer $observer)
-    {
-        if (empty($this->_blockCacheTags)) {
-            // No cached blocks on the current page
-            return;
-        }
-        Mage::helper('cache/varnish')->saveTagsUrl($this->_blockCacheTags);
     }
 }
