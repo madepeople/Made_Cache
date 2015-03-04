@@ -61,7 +61,7 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
 
             $cacheModifiers = Mage::helper('cache')
                 ->getBlockModifiers($block);
-            $block->setCacheModifiers($cacheModifiers);
+            $block->setCacheModifiers(join(' ', $cacheModifiers));
             $this->getResponse()->setBody($block->toHtml());
         }
     }
