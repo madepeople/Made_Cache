@@ -11,8 +11,12 @@ class Made_Cache_Block_Messages extends Mage_Core_Block_Messages
 {
     protected function _toHtml()
     {
-        if (Mage::helper('cache/varnish')->shouldUse()
-                && !$this->getBypassVarnish()) {
+        $helper = Mage::helper('cache/varnish');
+        $request = Mage::app()->getRequest();
+        if ($helper->shouldUse()
+            && $helper->getRequestTtl($request)
+            && !$this->getBypassVarnish()
+        ) {
             return Mage::helper('cache/varnish')
                     ->getEsiTag('madecache/varnish/messages');
         }
