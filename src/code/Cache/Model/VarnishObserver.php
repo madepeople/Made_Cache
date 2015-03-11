@@ -60,6 +60,11 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
+        $request = Mage::app()->getRequest();
+
+        if (!Mage::helper('cache/varnish')->getRequestTtl($request)) {
+            return;
+        }
 
         $observer->getEvent()
             ->getLayout()
