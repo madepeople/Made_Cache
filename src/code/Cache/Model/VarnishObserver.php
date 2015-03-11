@@ -84,6 +84,14 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
+        $headers = Mage::app()->getResponse()->getHeaders();
+        foreach ($headers as $header) {
+            if (strtolower($header['name']) == 'content-type') {
+                if ($header['value'] == 'application/json') {
+                    return;
+                }
+            }
+        }
 
         $block = $observer->getEvent()->getBlock();
 
