@@ -1,5 +1,5 @@
 {
-    "name": "madepeople/made-cache",
+    "name": "webbhuset/made-cache",
     "license": "BSD-4-Clause",
     "type": "magento-module",
     "description": "Block Cache & Varnish extension for Magento",
@@ -15,7 +15,7 @@
     "repositories": [
         {
             "type": "composer",
-            "url": "http://packages.firegento.com"
+            "url": "https://github.com/webbhuset/Made_Cache.git"
         }
     ]
 }
