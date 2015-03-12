@@ -221,7 +221,7 @@
                     </clear_varnish_user_cache>
                 </observers>
             </customer_logout>
-            <sales_quote_item_qty_set_after>
+            <sales_quote_item_save_after>
                 <observers>
                     <clear_varnish_user_cache>
                         <type>singleton</type>
@@ -229,7 +229,16 @@
                         <method>purgeUserCache</method>
                     </clear_varnish_user_cache>
                 </observers>
-            </sales_quote_item_qty_set_after>
+            </sales_quote_item_save_after>
+            <sales_quote_item_delete_after>
+                <observers>
+                    <clear_varnish_user_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeUserCache</method>
+                    </clear_varnish_user_cache>
+                </observers>
+            </sales_quote_item_delete_after>
             <catalog_product_compare_add_product>
                 <observers>
                     <clear_varnish_user_cache>
