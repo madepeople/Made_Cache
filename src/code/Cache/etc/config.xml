@@ -104,6 +104,15 @@
                     </cache_order_place_after>
                 </observers>
             </sales_order_place_after>
+            <made_cache_purge_user_cache>
+                <observers>
+                    <clear_varnish_user_cache>
+                        <type>singleton</type>
+                        <class>cache/varnishObserver</class>
+                        <method>purgeUserCache</method>
+                    </clear_varnish_user_cache>
+                </observers>
+            </made_cache_purge_user_cache>
         </events>
     </global>
     <frontend>
