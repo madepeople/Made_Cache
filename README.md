@@ -4,20 +4,16 @@ Magento Block Cache & Varnish extension
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Magento Block Cache & Varnish extension](#magento-block-cache-&-varnish-extension)
   - [Why?](#why)
   - [Features](#features)
   - [Installation](#installation)
   - [Magento Configuration](#magento-configuration)
   - [Block Cache Modifiers](#block-cache-modifiers)
-- [Redis Cache & Sessions](#redis-cache--sessions)
+- [Redis Cache & Sessions](#redis-cache-&-sessions)
   - [Configuration](#configuration)
-- [Varnish & ESI](#varnish--sessions)
+- [Varnish & ESI](#varnish-&-esi)
   - [ESI](#esi)
   - [General Configuration](#general-configuration)
-- [Varnish Session Validation](#varnish-session-validation)
-  - [Initial Setup](#initial-setup)
-  - [Redis Configuration](#redis-configuration)
 - [Config Cache Regeneration Locking](#config-cache-regeneration-locking)
 - [FAQ](#faq)
   - [Will Made\_Cache interfere with other modules?](#will-made\_cache-interfere-with-other-modules)
@@ -150,7 +146,6 @@ To enable the cache and/or session handler, edit your local.xml:
                 <database>0</database>
                 <prefix></prefix>
                 <port>6379</port>
-                <database_varnish>2</database_varnish>
             </backend_options>
         </cache>
         
