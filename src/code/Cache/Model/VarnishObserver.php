@@ -172,14 +172,7 @@ class Made_Cache_Model_VarnishObserver
         }
 
         if ($flush) {
-            $cache = Made_Cache_Model_VarnishCache::getCacheInstance();
-            if ($cache !== false) {
-                // Flush the Redis block<->URL cache
-                $cache->getFrontend()
-                    ->clean(Zend_Cache::CLEANING_MODE_ALL, array());
-            }
             $errors = Mage::helper('cache/varnish')->flush();
-
             if (!empty($errors)) {
                 Mage::getSingleton('adminhtml/session')->addError("Varnish Purge failed: " . join(', ', $errors));
             } else {
