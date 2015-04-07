@@ -161,7 +161,7 @@ class Made_Cache_Redis_Session
             return '';
         }
 
-        return json_decode(gzuncompress($result));
+        return gzuncompress($result);
     }
 
     /**
@@ -176,7 +176,7 @@ class Made_Cache_Redis_Session
         $client = $this->_getClient();
         $client->watch($id);
         $client->multi();
-        $client->set($id, gzcompress(json_encode($data), 6));
+        $client->set($id, gzcompress($data, 6));
         $client->expire($id, $this->_maxLifetime);
         $result = $client->exec();
         if (empty($result[0])) {
