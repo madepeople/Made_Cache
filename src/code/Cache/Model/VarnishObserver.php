@@ -215,6 +215,11 @@ class Made_Cache_Model_VarnishObserver
      */
     public function saveBlockTags(Varien_Event_Observer $observer)
     {
+        $helper = Mage::helper('cache/varnish');
+        if (!$helper->shouldUse()) {
+            return;
+        }
+
         // Ignore the mass including block_html tag
         $ignoreTags = array(
             Mage_Core_Block_Abstract::CACHE_GROUP,
@@ -230,11 +235,14 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
         $cacheTags = $block->getCacheTags();
-        foreach ($cacheTags as $key => $val) {
-            if (in_array($val, $ignoreTags)) {
-                unset($cacheTags[$key]);
+        try {
+            foreach ($cacheTags as $key => $val) {
+                if (in_array($val, $ignoreTags)) {
+                    unset($cacheTags[$key]);
+                }
             }
-        }
+        } catch (Exception $e) {}
+
         if (empty($cacheTags)) {
             // Nothing to add
             return;
