@@ -198,6 +198,10 @@ sub vcl_deliver {
     unset resp.http.X-Magento-Store;
     unset resp.http.X-Session-UUID;
 
+    unset resp.http.X-Made-Cache-Tags-1;
+    unset resp.http.X-Made-Cache-Tags-2;
+    unset resp.http.X-Made-Cache-Tags-3;
+
     if (req.http.tempCookie) {
         # Version of https://www.varnish-cache.org/trac/wiki/VCLExampleLongerCaching
         set resp.http.Set-Cookie = req.http.tempCookie;
