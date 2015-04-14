@@ -215,6 +215,11 @@ class Made_Cache_Model_VarnishObserver
      */
     public function saveBlockTags(Varien_Event_Observer $observer)
     {
+        $helper = Mage::helper('cache/varnish');
+        if (!$helper->shouldUse()) {
+            return;
+        }
+
         // Ignore the mass including block_html tag
         $ignoreTags = array(
             Mage_Core_Block_Abstract::CACHE_GROUP,
