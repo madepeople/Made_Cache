@@ -9,6 +9,21 @@
  */
 class Made_Cache_Block_Catalog_Product_List extends Mage_Catalog_Block_Product_List
 {
+    const DEFAULT_PRODUCT_TEMPLATE = 'catalog/product/list/product.phtml';
+
+    /**
+     * Return the default product template unless specified differently
+     *
+     * @return mixed
+     */
+    public function getProductTemplate()
+    {
+        if (!$this->hasData('product_template')) {
+            $this->setData('product_template', self::DEFAULT_PRODUCT_TEMPLATE);
+        }
+        return $this->getData('product_template');
+    }
+
     /**
      * For granular caching of product list blocks. Requires the markup
      * of a single product to be broken out of list.phtml into
@@ -26,7 +41,7 @@ class Made_Cache_Block_Catalog_Product_List extends Mage_Catalog_Block_Product_L
         $block = $this->getLayout()
                 ->createBlock('cache/catalog_product_list_product')
                 ->setCacheLifetime($this->getCacheLifetime())
-                ->setTemplate('catalog/product/list/product.phtml')
+                ->setTemplate($this->getProductTemplate())
                 ->setProduct($product);
 
         $html = $block->toHtml();
