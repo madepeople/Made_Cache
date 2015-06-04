@@ -10,9 +10,6 @@
  * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 
-require_once 'Predis/Autoloader.php';
-Predis\Autoloader::register(true);
-
 class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     implements Zend_Cache_Backend_ExtendedInterface
 {
@@ -21,8 +18,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => '60', // http://stackoverflow.com/questions/11776029/predis-is-giving-error-while-reading-line-from-server
-        'read_write_timeout' => 0,
+        'timeout' => '60',
         'prefix' => 'mc:',
         'database' => 0,
     );
@@ -33,28 +29,20 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      * The idea with not returning the client is to bypass caching in case of
      * an error, instead of breaking the world
      *
-     * @return null|Predis\Client
+     * @return null|Redis
      */
     private function _getClient()
     {
         if ($this->_client === null) {
-            $this->_client = new Predis\Client(array(
-                'scheme' => 'tcp',
-                'host' => $this->_options['hostname'],
-                'port' => $this->_options['port'],
-                'database' => $this->_options['database'],
-                'timeout' => $this->_options['timeout'],
-                'read_write_timeout' => $this->_options['read_write_timeout'],
-            ), array(
-                'prefix' => $this->_options['prefix'],
-                'profile' => '2.8',
-            ));
-        }
-        try {
-            $this->_client->ping();
-        } catch (Exception $e) {
-            $this->_client->disconnect();
-            $this->_client->connect();
+            $this->_client = new Redis();
+            $this->_client->connect(
+                $this->_options['hostname'],
+                $this->_options['port'],
+                $this->_options['timeout'],
+                100
+            );
+            $this->_client->select($this->_options['database']);
+            $this->_client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);
         }
         return $this->_client;
     }
@@ -106,7 +94,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $metadataKey = $this->_metadataPrefix . $id;
         $metadata['mtime'] = time();
         $client->set($metadataKey, gzcompress(serialize($metadata), 6));
-        $client->expireat($metadataKey, $metadata['expire']);
+        $client->expireAt($metadataKey, $metadata['expire']);
     }
 
     /**
@@ -217,7 +205,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $client = $this->_getClient();
         $ttl = $client->ttl($id);
         $lifetime = $ttl + $extraLifetime;
-        $result = $client->expireat($id, $lifetime);
+        $result = $client->expireAt($id, $lifetime);
         $metadata = $this->getMetadatas($id);
         $metadata['expire'] = $lifetime;
         $this->_saveMetadata($client, $id, $metadata);
@@ -298,12 +286,10 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function test($id)
     {
         $client = $this->_getClient();
-        $pipe = $client->pipeline();
-        if ($pipe->exists($id)) {
+        if ($client->exists($id)) {
             $metadataKey = $this->_metadataPrefix . $id;
-            $pipe->get($metadataKey);
+            $result = $client->get($metadataKey);
         }
-        $result = $pipe->execute();
 
         if (count($result) === 1) {
             // It failed at EXISTS
@@ -319,11 +305,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         }
 
         $tags = $metadata['tags'];
-        $pipe = $client->pipeline();
+        $pipe = $client->multi();
         foreach ($tags as $tag) {
             $pipe->exists($tag);
         }
-        $results = $pipe->execute();
+        $results = $pipe->exec();
         foreach ($results as $result) {
             if (!$result) {
                 return false;
@@ -354,7 +340,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             $lifetime = $this->_defaultExpiry;
         }
         $lifetime += time();
-        $client->expireat($id, $lifetime);
+        $client->expireAt($id, $lifetime);
 
         $now = time();
         $tags = array_unique(array_values($tags));
@@ -363,9 +349,9 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             if (!$tagCacheTimestamp) {
                 $tagCacheTimestamp = $now;
                 $client->set("{$tag}_{$tagCacheTimestamp}", 1);
-                $client->expireat("{$tag}_{$tagCacheTimestamp}", $lifetime);
+                $client->expireAt("{$tag}_{$tagCacheTimestamp}", $lifetime);
                 $client->set($tag, $tagCacheTimestamp);
-                $client->expireat($tag, $lifetime);
+                $client->expireAt($tag, $lifetime);
             }
             $saveTags[] = "{$tag}_{$tagCacheTimestamp}";
         }
@@ -420,7 +406,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
 
         switch ($mode) {
             case Zend_Cache::CLEANING_MODE_ALL:
-                $client->flushdb();
+                $client->flushDB();
                 break;
 
             // Both TAG and ANY_TAG use the same method because we can't differ
@@ -458,7 +444,12 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function acquireLock($lockName, $token, $timeout, &$counter = null)
     {
         $client = $this->_getClient();
-        $result = $client->set($lockName, $token, "NX", "EX", $timeout);
+        $result = $client->set($lockName, $token,
+            array(
+                'nx',
+                'ex' => $timeout
+            )
+        );
         if ($result === false && $counter === false) {
             $counter = $client->incr($lockName);
         }

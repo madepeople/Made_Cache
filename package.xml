@@ -70,31 +70,26 @@ A good block cache is vital for scaling a site, be sure to implement it before r
          <target>magecommunity</target>
          <target>mageetc</target>
          <target>magedesign</target>
-         <target>magelib</target>
       </target>
       <path>
          <path/>
          <path>Made/Cache</path>
          <path>modules/Made_Cache.xml</path>
          <path>frontend/base/default/layout/madecache.xml</path>
-         <path>Predis</path>
       </path>
       <type>
          <type>file</type>
          <type>dir</type>
          <type>file</type>
          <type>file</type>
-         <type>dir</type>
       </type>
       <include>
          <include/>
          <include/>
          <include/>
          <include/>
-         <include/>
       </include>
       <ignore>
-         <ignore/>
          <ignore/>
          <ignore/>
          <ignore/>

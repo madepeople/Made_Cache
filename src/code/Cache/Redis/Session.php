@@ -8,9 +8,6 @@
  * @copyright Copyright (c) 2014 Made People AB. (http://www.madepeople.se/)
  */
 
-require_once 'Predis/Autoloader.php';
-Predis\Autoloader::register(true);
-
 class Made_Cache_Redis_Session
     implements Zend_Session_SaveHandler_Interface
 {
@@ -19,8 +16,7 @@ class Made_Cache_Redis_Session
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => '60', // http://stackoverflow.com/questions/11776029/predis-is-giving-error-while-reading-line-from-server
-        'read_write_timeout' => 0,
+        'timeout' => '60',
         'prefix' => '',
         'database' => 1,
     );
@@ -49,28 +45,20 @@ class Made_Cache_Redis_Session
     /**
      * Get the redis client
      *
-     * @return \Predis\Client
+     * @return Redis
      */
     private function _getClient()
     {
         if ($this->_client === null) {
-            $this->_client = new Predis\Client(array(
-                'scheme' => 'tcp',
-                'host' => $this->_options['hostname'],
-                'port' => $this->_options['port'],
-                'database' => $this->_options['database'],
-                'timeout' => $this->_options['timeout'],
-                'read_write_timeout' => $this->_options['read_write_timeout'],
-            ), array(
-                'prefix' => $this->_options['prefix'],
-                'profile' => '2.8',
-            ));
-        }
-        try {
-            $this->_client->ping();
-        } catch (Exception $e) {
-            $this->_client->disconnect();
-            $this->_client->connect();
+            $this->_client = new Redis();
+            $this->_client->connect(
+                $this->_options['hostname'],
+                $this->_options['port'],
+                $this->_options['timeout'],
+                100
+            );
+            $this->_client->select($this->_options['database']);
+            $this->_client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);
         }
         return $this->_client;
     }
