@@ -18,7 +18,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => '60',
+        'timeout' => '1',
         'prefix' => 'mc:',
         'database' => 0,
     );
@@ -35,11 +35,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         if ($this->_client === null) {
             $this->_client = new Redis();
+            if (strstr)
             $this->_client->connect(
                 $this->_options['hostname'],
                 $this->_options['port'],
-                $this->_options['timeout'],
-                100
+                $this->_options['timeout']
             );
             $this->_client->select($this->_options['database']);
             $this->_client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);
@@ -479,7 +479,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             end
             ';
 
-        $result = $client->eval($script, 1, $lockName, $token);
+        $result = $client->eval($script, array($lockName, $token), 1);
 
         return $result !== 0;
     }
