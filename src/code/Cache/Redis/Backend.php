@@ -35,7 +35,6 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         if ($this->_client === null) {
             $this->_client = new Redis();
-            if (strstr)
             $this->_client->connect(
                 $this->_options['hostname'],
                 $this->_options['port'],
