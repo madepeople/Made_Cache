@@ -291,7 +291,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             $result = $client->get($metadataKey);
         }
 
-        if (count($result) === 1) {
+        if (!empty($result) === 1) {
             // It failed at EXISTS
             return false;
         }
