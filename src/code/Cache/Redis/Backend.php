@@ -343,6 +343,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
 
         $now = time();
         $tags = array_unique(array_values($tags));
+        $saveTags = array();
         foreach ($tags as $tag) {
             $tagCacheTimestamp = $client->get($tag);
             if (!$tagCacheTimestamp) {
