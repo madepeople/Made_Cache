@@ -308,6 +308,11 @@ EOF;
             return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime') - 1) . 's';
         }
 
+        if ($this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
+            // Refresh the cookie pinger every minute
+            return '60s';
+        }
+
         // Messages should only be cached if they are empty
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/messages', $request)) {
             if (Mage::helper('cache')->responseHasMessages()) {
@@ -315,9 +320,7 @@ EOF;
             }
         } else {
             $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
-            if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
-                || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)
-            ) {
+            if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)) {
                 return null;
             }
         }
