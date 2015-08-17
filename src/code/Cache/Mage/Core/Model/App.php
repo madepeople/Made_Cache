@@ -460,7 +460,12 @@ class Mage_Core_Model_App
     protected function _initModules()
     {
         if (get_class($this->_config) === 'Made_Cache_Model_Config') {
-            return $this->_initModulesSafe();
+            $backend = Mage::app()->getCacheInstance()
+                ->getFrontend()
+                ->getBackend();
+            if (get_class($backend) === 'Made_Cache_Redis_Backend') {
+                return $this->_initModulesSafe();
+            }
         }
 
         if (!$this->_config->loadModulesCache()) {
