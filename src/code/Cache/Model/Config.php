@@ -28,14 +28,18 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
             ->getFrontend()
             ->getBackend();
 
-        $options = $this->getLockingOptions();
+        if (get_class($backend) !== 'Made_Cache_Redis_Backend') {
+            return parent::reinit($options);
+        }
 
-        if ($backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
+        $lockingOptions = $this->getLockingOptions();
+
+        if ($backend->acquireLock($lockingOptions['lock_name'], $lockingOptions['token'], $lockingOptions['lock_timeout'])) {
             $this->_allowCacheForInit = false;
             $this->_useCache = false;
             $options['lock_acquired'] = true;
             $this->init($options);
-            $backend->releaseLock($options['lock_name'], $options['token']);
+            $backend->releaseLock($lockingOptions['lock_name'], $lockingOptions['token']);
         }
 
         return $this;
@@ -48,6 +52,14 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
      */
     public function init($options=array())
     {
+        $backend = Mage::app()->getCacheInstance()
+            ->getFrontend()
+            ->getBackend();
+
+        if (get_class($backend) !== 'Made_Cache_Redis_Backend') {
+            return parent::init($options);
+        }
+
         $this->setCacheChecksum(null);
         $this->_cacheLoadedSections = array();
         $this->setOptions($options);
@@ -58,18 +70,14 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
             return $this;
         }
 
+        $lockingOptions = $this->getLockingOptions();
+
         $lockSpun = false;
         if (empty($options['lock_acquired'])) {
-            $backend = Mage::app()->getCacheInstance()
-                ->getFrontend()
-                ->getBackend();
-
-            $options = $this->getLockingOptions();
-
             // Spin lock
-            while (!$backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
+            while (!$backend->acquireLock($lockingOptions['lock_name'], $lockingOptions['token'], $lockingOptions['lock_timeout'])) {
                 $lockSpun = true;
-                usleep($options['spin_timeout']);
+                usleep($lockingOptions['spin_timeout']);
             }
         }
 
@@ -77,7 +85,7 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
             // The cache might have been generated while we waited for the lock
             $cacheLoad = $this->loadModulesCache();
             if ($cacheLoad) {
-                $backend->releaseLock($options['lock_name'], $options['token']);
+                $backend->releaseLock($lockingOptions['lock_name'], $lockingOptions['token']);
                 return $this;
             }
         }
@@ -88,7 +96,7 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
         $this->saveCache();
 
         if (empty($options['lock_acquired'])) {
-            $backend->releaseLock($options['lock_name'], $options['token']);
+            $backend->releaseLock($lockingOptions['lock_name'], $lockingOptions['token']);
         }
 
         return $this;
