@@ -113,7 +113,7 @@ sub vcl_recv {
 
 sub vcl_hash {
     # ESI Request
-    if (req.url ~ "/madecache/varnish/(esi|messages)") {
+    if (req.url ~ "/madecache/varnish/(esi|messages|cookie)") {
         hash_data(regsub(req.url, "(/hash/[^\/]+/).*", "\1"));
 
         # Logged in user, cache on UUID level
@@ -154,12 +154,6 @@ sub vcl_miss {
 
 # Called when an object is fetched from the backend
 sub vcl_fetch {
-    # Pass the cookie requests directly to the backend, without caching
-    if (req.url ~ "/madecache/varnish/cookie") {
-        # Cache not to cache
-        return (hit_for_pass);
-    }
-
     # Hold down object variations by removing the referer and vary headers
     unset beresp.http.referer;
     unset beresp.http.vary;

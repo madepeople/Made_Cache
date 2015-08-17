@@ -16,7 +16,7 @@ class Made_Cache_Redis_Session
     protected $_options = array(
         'hostname' => '127.0.0.1',
         'port' => 6379,
-        'timeout' => '60',
+        'timeout' => '1',
         'prefix' => '',
         'database' => 1,
     );
@@ -54,8 +54,7 @@ class Made_Cache_Redis_Session
             $this->_client->connect(
                 $this->_options['hostname'],
                 $this->_options['port'],
-                $this->_options['timeout'],
-                100
+                $this->_options['timeout']
             );
             $this->_client->select($this->_options['database']);
             $this->_client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);

@@ -243,12 +243,18 @@ EOF;
     /**
      * Retreive an ESI tag for the specified URL
      *
+     * The reason we change https to http is because varnish doesn't speak
+     * SSL anyway, and if we terminate SSL before varnish it needs to be
+     * able to crawl ESI links
+     *
      * @param string $url
      */
     public function getEsiTag($url)
     {
         $url = preg_replace('#^/#', '', $url);
-        return '<esi:include src="' . Mage::getUrl($url) . '"/>';
+        $url = preg_replace('#^https#', 'http', Mage::getUrl($url));
+        $esiTag = '<esi:include src="' . $url . '"/>';
+        return $esiTag;
     }
 
     /**
@@ -308,6 +314,11 @@ EOF;
             return intval(Mage::getStoreConfig('web/cookie/cookie_lifetime') - 1) . 's';
         }
 
+        if ($this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
+            // Refresh the cookie pinger every minute
+            return '60s';
+        }
+
         // Messages should only be cached if they are empty
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/messages', $request)) {
             if (Mage::helper('cache')->responseHasMessages()) {
@@ -315,9 +326,7 @@ EOF;
             }
         } else {
             $cacheRoutes = Mage::getStoreConfig('cache/varnish/cache_routes');
-            if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)
-                || $this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)
-            ) {
+            if (!$this->_matchRoutesAgainstRequest($cacheRoutes, $request)) {
                 return null;
             }
         }

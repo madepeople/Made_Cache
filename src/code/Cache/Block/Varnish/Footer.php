@@ -25,7 +25,7 @@ class Made_Cache_Block_Varnish_Footer extends Mage_Core_Block_Abstract
 
         $html = <<<EOF
 <script type="text/javascript">
-new Ajax.Request('$scriptUrl');
+new Ajax.Request('$scriptUrl', {method: 'get'});
 </script>
 EOF;
         return $html;
