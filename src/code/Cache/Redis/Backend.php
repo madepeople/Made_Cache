@@ -40,7 +40,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 $this->_options['port'],
                 $this->_options['timeout']
             );
-            $this->_client->select($this->_options['database']);
+            $this->_client->select((int)$this->_options['database']);
             $this->_client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);
         }
         return $this->_client;

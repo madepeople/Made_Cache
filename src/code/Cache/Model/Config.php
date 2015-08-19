@@ -91,6 +91,10 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
         }
 
         // Check cache
+
+        // @see https://github.com/convenient/magento-ce-ee-config-corruption-bug#the-fix
+        $this->_useCache = false;
+        // </iterations fix>
         $this->loadModules();
         $this->loadDb();
         $this->saveCache();
