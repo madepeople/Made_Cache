@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Experimental redis cache implementation that uses SCAN for performance,
- * and also keeps an expiry on every key to make it easier to calculate
- * larger amounts of visitors when caching carts, vs the amount of memory.
+ * Experimental redis cache that keeps an expiry on every key to make it
+ * easier to calculate larger amounts of visitors when caching carts, vs the
+ * amount of memory.
  *
  * @package Made_Cache
  * @author info@madepeople.se
@@ -21,9 +21,18 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         'timeout' => '1',
         'prefix' => 'mc:',
         'database' => 0,
+        'cache_loaded_data' => false,
     );
     protected $_metadataPrefix = 'metadata_';
     protected $_defaultExpiry = 259200; // Expire a key after a month, regardless
+
+    /**
+     * If enabled in backend_options, cache already loaded data in-memory to
+     * offload the redis instance
+     *
+     * @var array
+     */
+    protected $_loadedData = array();
 
     /**
      * The idea with not returning the client is to bypass caching in case of
@@ -50,7 +59,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      * Expose the client so we can do custom magic directly Redis
      *
      * @see Made_Cache_Helper_Varnish::saveTagsUrl
-     * @return null|\Predis\Client
+     * @return null|Redis
      */
     public function getClient()
     {
@@ -248,6 +257,12 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function load($id, $doNotTestCacheValidity = false)
     {
+        if ($this->_options['cache_loaded_data'] !== false) {
+            if (isset($this->_loadedData[$id])) {
+                return $this->_loadedData[$id];
+            }
+        }
+
         $metadata = $this->getMetadatas($id);
         if ($metadata === false) {
             return false;
@@ -265,14 +280,31 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
 
         $tags = $metadata['tags'];
         if (!empty($tags)) {
+            $numberOfTags = count($tags);
+
+            $existsCalls = '';
             foreach ($tags as $tag) {
-                if (!$client->exists($tag)) {
-                    $this->remove($id);
-                    return false;
-                }
+                $tag = $this->_options['prefix'] . $tag;
+                $existsCalls .= "existing_tags = existing_tags + redis.call('EXISTS', '$tag')\n";
+            }
+
+            $script = "
+                local existing_tags = 0
+                $existsCalls
+                return existing_tags
+            ";
+
+            $existingTags = $client->eval($script, array(), 0);
+
+            if ($numberOfTags !== $existingTags) {
+                $this->remove($id);
+                return false;
             }
         }
 
+        if ($this->_options['cache_loaded_data'] !== false) {
+            $this->_loadedData[$id] = $data;
+        }
         return $data;
     }
 
@@ -375,6 +407,13 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $client = $this->_getClient();
         $client->del($id);
         $client->del($this->_metadataPrefix . $id);
+
+        if ($this->_options['cache_loaded_data'] !== false) {
+            if (isset($this->_loadedData[$id])) {
+                unset($this->_loadedData[$id]);
+            }
+        }
+
         return true;
     }
 
@@ -461,6 +500,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      *
      * @param $lockName
      * @param $token
+     * @return boolean
      */
     public function releaseLock($lockName, $token, &$counter = null)
     {
