@@ -219,6 +219,7 @@ EOF;
         $active = null;
         do {
             curl_multi_exec($mh, $active);
+            curl_multi_select($mh);
         } while ($active);
 
         // Error handling and clean up
