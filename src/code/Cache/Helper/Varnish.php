@@ -142,9 +142,22 @@ EOF;
      */
     public function banTags($tags)
     {
+        // Ignore the quote tag because it's cleared regardless via the
+        // X-Session-UUID
+        $ignoreTagPatterns = array(
+            '/^quote$/',
+            '/^quote_.*/'
+        );
+
         $tags = (array)$tags;
         $status = array();
         foreach ($tags as $tag) {
+            foreach ($ignoreTagPatterns as $ignorePattern) {
+                if (preg_match($ignorePattern, $tag)) {
+                    continue 2;
+                }
+            }
+
             $tag = '\|' . $tag . '\|';
 
             for ($i = 1; $i <= self::HTTP_TAG_HEADER_LIMIT; $i++) {
