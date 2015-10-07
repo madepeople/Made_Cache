@@ -146,7 +146,6 @@ EOF;
         // X-Session-UUID
         $ignoreTagPatterns = array(
             '/^quote$/',
-            '/^quote_.*/'
         );
 
         $tags = (array)$tags;
