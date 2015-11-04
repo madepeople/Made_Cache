@@ -368,7 +368,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if ($lifetime === null) {
             $lifetime = $this->_defaultExpiry;
         }
-        $client->setex($lifetime, $lifetime, gzcompress($data, 6));
+        $client->setex($id, $lifetime, gzcompress($data, 6));
 
         $now = time();
         $tags = array_unique(array_values($tags));
