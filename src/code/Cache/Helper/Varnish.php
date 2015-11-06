@@ -352,8 +352,8 @@ EOF;
         }
 
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
-            // Refresh the cookie pinger every minute
-            return '60s';
+            // Never cache the cookie pinger
+            return null;
         }
 
         // Messages should only be cached if they are empty
