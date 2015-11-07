@@ -13,10 +13,6 @@ class Made_Cache_Model_Modifier_Blocktype
     public function apply(Mage_Core_Block_Abstract $block)
     {
         switch (true) {
-            case $block instanceof Mage_Catalog_Block_Product_Abstract:
-                Mage::getSingleton('cache/modifier_blocktype_catalog')
-                    ->applyProductView($block);
-                break;
             case $block instanceof Mage_Catalog_Block_Category_View:
                 Mage::getSingleton('cache/modifier_blocktype_catalog')
                     ->applyCategoryView($block);
@@ -32,6 +28,10 @@ class Made_Cache_Model_Modifier_Blocktype
             case $block instanceof Mage_Catalog_Block_Product_List:
                 Mage::getSingleton('cache/modifier_blocktype_catalog')
                     ->applyProductList($block);
+                break;
+            case $block instanceof Mage_Catalog_Block_Product_Abstract:
+                Mage::getSingleton('cache/modifier_blocktype_catalog')
+                    ->applyProductView($block);
                 break;
             case $block instanceof Mage_Cms_Block_Page:
                 Mage::getSingleton('cache/modifier_blocktype_cms')
