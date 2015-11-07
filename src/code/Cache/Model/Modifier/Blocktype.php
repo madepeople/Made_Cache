@@ -13,7 +13,7 @@ class Made_Cache_Model_Modifier_Blocktype
     public function apply(Mage_Core_Block_Abstract $block)
     {
         switch (true) {
-            case $block instanceof Mage_Catalog_Block_Product_View:
+            case $block instanceof Mage_Catalog_Block_Product_Abstract:
                 Mage::getSingleton('cache/modifier_blocktype_catalog')
                     ->applyProductView($block);
                 break;

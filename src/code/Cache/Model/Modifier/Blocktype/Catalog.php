@@ -14,7 +14,7 @@ class Made_Cache_Model_Modifier_Blocktype_Catalog
      *
      * @param Mage_Catalog_Block_Product_View $block
      */
-    public function applyProductView(Mage_Catalog_Block_Product_View $block)
+    public function applyProductView(Mage_Catalog_Block_Product_Abstract $block)
     {
         // The "messages" block is session-dependent, don't cache
         if (Mage::helper('cache')->responseHasMessages()) {
