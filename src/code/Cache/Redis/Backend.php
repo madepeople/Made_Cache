@@ -101,8 +101,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $metadataKey = $this->_metadataPrefix . $id;
         $metadata['mtime'] = time();
-        $client->set($metadataKey, gzcompress(serialize($metadata), 6));
-        $client->expireAt($metadataKey, $metadata['expire']);
+        $client->setex($metadataKey, $metadata['expire'], gzcompress(serialize($metadata), 6));
     }
 
     /**
@@ -213,7 +212,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $client = $this->_getClient();
         $ttl = $client->ttl($id);
         $lifetime = $ttl + $extraLifetime;
-        $result = $client->expireAt($id, $lifetime);
+        $result = $client->expire($id, $lifetime);
         $metadata = $this->getMetadatas($id);
         $metadata['expire'] = $lifetime;
         $this->_saveMetadata($client, $id, $metadata);
@@ -365,13 +364,11 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function save($data, $id, $tags = array(), $specificLifetime = false)
     {
         $client = $this->_getClient();
-        $client->set($id, gzcompress($data, 6));
         $lifetime = $this->getLifetime($specificLifetime);
         if ($lifetime === null) {
             $lifetime = $this->_defaultExpiry;
         }
-        $lifetime += time();
-        $client->expireAt($id, $lifetime);
+        $client->setex($id, $lifetime, gzcompress($data, 6));
 
         $now = time();
         $tags = array_unique(array_values($tags));
@@ -380,10 +377,8 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             $tagCacheTimestamp = $client->get($tag);
             if (!$tagCacheTimestamp) {
                 $tagCacheTimestamp = $now;
-                $client->set("{$tag}_{$tagCacheTimestamp}", 1);
-                $client->expireAt("{$tag}_{$tagCacheTimestamp}", $lifetime);
-                $client->set($tag, $tagCacheTimestamp);
-                $client->expireAt($tag, $lifetime);
+                $client->setex("{$tag}_{$tagCacheTimestamp}", $lifetime, 1);
+                $client->setex($tag, $lifetime, $tagCacheTimestamp);
             }
             $saveTags[] = "{$tag}_{$tagCacheTimestamp}";
         }

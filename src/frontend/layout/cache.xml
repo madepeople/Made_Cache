@@ -11,7 +11,7 @@
         <cache>
             <!--
                 Render "cms_page" with a custom lifetime, the default is
-                9999999999 seconds
+                604800 seconds
             -->
             <name lifetime="86400">cms_page</name>
             <name>before_body_end</name>

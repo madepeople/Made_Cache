@@ -20,6 +20,29 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const HTTP_TAG_HEADER_LIMIT = 3;
     const HTTP_TAG_PREFIX = 'X-Made-Cache-Tags';
 
+    protected $_callVarnish = true;
+
+    /**
+     * If set to false we don't call varnish. This can be a good idea for long
+     * imports that do a lot of product saving for instance.
+     *
+     * @param $bool
+     */
+    public function setCallVarnish($callVarnish)
+    {
+        $this->_callVarnish = (bool)$callVarnish;
+    }
+
+    /**
+     * Get what is set
+     *
+     * @return bool
+     */
+    public function getCallVarnish()
+    {
+        return $this->_callVarnish;
+    }
+
     /**
      * Determine if varnish is in front of Magento
      *
@@ -39,7 +62,8 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
      */
     public function shouldUse()
     {
-        return Mage::app()->useCache('varnish') && $this->isInFront();
+        return Mage::app()->useCache('varnish') && $this->isInFront()
+            && $this->getCallVarnish();
     }
 
     /**
@@ -328,8 +352,8 @@ EOF;
         }
 
         if ($this->_matchRoutesAgainstRequest('madecache/varnish/cookie', $request)) {
-            // Refresh the cookie pinger every minute
-            return '60s';
+            // Never cache the cookie pinger
+            return null;
         }
 
         // Messages should only be cached if they are empty

@@ -28,7 +28,7 @@ class Made_Cache_Model_Layout extends Mage_Core_Model_Layout
      *
      * @var int
      */
-    const DEFAULT_CACHE_LIFETIME = 9999999999;
+    const DEFAULT_CACHE_LIFETIME = 604800;
 
     /**
      * Take cache/noache/ESI tags into concern for block rendering
