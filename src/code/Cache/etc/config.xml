@@ -30,6 +30,7 @@
                     <ssl>cache/modifier_ssl</ssl>
                     <store>cache/modifier_store</store>
                     <request>cache/modifier_request</request>
+                    <session>cache/modifier_session</session>
                 </modifiers>
             </block>
         </cache>
