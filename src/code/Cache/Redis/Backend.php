@@ -325,7 +325,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             // It failed at EXISTS
             return false;
         }
-        $metadata = @gzuncompress($result[1]);
+        $metadata = @gzuncompress($result);
         if ($metadata === false) {
             return false;
         }
