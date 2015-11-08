@@ -13,8 +13,11 @@ class Made_Cache_Model_Modifier_Cacheid
 {
     public function apply(Mage_Core_Block_Abstract $block)
     {
-        $keys = $block->getCacheKeys();
-        $keys[] = $block->getLayout()->getUpdate()->getCacheId();
-        $block->setCacheKeys($keys);
+        $layout = $block->getLayout();
+        if ($layout) {
+            $keys = $block->getCacheKeys();
+            $keys[] = $block->getLayout()->getUpdate()->getCacheId();
+            $block->setCacheKeys($keys);
+        }
     }
 }
