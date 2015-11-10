@@ -21,6 +21,18 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const HTTP_TAG_PREFIX = 'X-Made-Cache-Tags';
 
     protected $_callVarnish = true;
+    
+    protected static $_calls = array();
+
+    /**
+     * Perform the real varnish calls on object destruction
+     */
+    public function __destruct()
+    {
+        foreach (self::$_calls as $row) {
+            $this->_callVarnish($row['urls'], $row['type'], $row['headers']);
+        }
+    }
 
     /**
      * If set to false we don't call varnish. This can be a good idea for long
@@ -140,7 +152,7 @@ EOF;
      */
     public function flush()
     {
-        return $this->_callVarnish('', 'FLUSH');
+        return $this->callVarnish('', 'FLUSH');
     }
 
     /**
@@ -154,7 +166,7 @@ EOF;
         $status = array();
         foreach ($urls as $url) {
             $header = 'X-Ban-String: req.url ~ ' . $url;
-            $status = array_merge($this->_callVarnish('/', 'BAN', array($header)), $status);
+            $status = array_merge($this->callVarnish('/', 'BAN', array($header)), $status);
         }
         return $status;
     }
@@ -185,7 +197,7 @@ EOF;
 
             for ($i = 1; $i <= self::HTTP_TAG_HEADER_LIMIT; $i++) {
                 $header = 'X-Ban-String: obj.http.' . self::HTTP_TAG_PREFIX . '-' . $i . ' ~ ' . $tag;
-                $status = array_merge($this->_callVarnish('/', 'BAN', array($header)), $status);
+                $status = array_merge($this->callVarnish('/', 'BAN', array($header)), $status);
             }
         }
         return $status;
@@ -198,7 +210,7 @@ EOF;
      */
     public function purge($urls)
     {
-        return $this->_callVarnish($urls, 'PURGE');
+        return $this->callVarnish($urls, 'PURGE');
     }
 
     /**
@@ -210,7 +222,34 @@ EOF;
      */
     public function refresh($urls)
     {
-        return $this->_callVarnish($urls, 'REFRESH');
+        return $this->callVarnish($urls, 'REFRESH');
+    }
+
+    /**
+     * Instead of calling varnish directly we merge all calls into one and 
+     * do the real calls on destruct to prevent multiple purges of the same 
+     * URL within one request
+     * 
+     * @param $urls
+     * @param string $type
+     * @param array $headers
+     */
+    public function callVarnish($urls, $type = 'PURGE', $headers = array())
+    {
+        $urls = (array)$urls;
+        asort($urls);
+        asort($headers);
+        $key = md5(join('|', array(
+            join('|', $urls),
+            $type,
+            join('|', $headers),
+        )));
+        self::$_calls[$key] = array(
+            'urls' => $urls,
+            'type' => $type,
+            'headers' => $headers
+        );
+        return true;
     }
 
     /**
@@ -225,7 +264,6 @@ EOF;
      */
     protected function _callVarnish($urls, $type = 'PURGE', $headers = array())
     {
-        $urls = (array)$urls;
         $servers = $this->getServers();
 
         // Init curl handler
@@ -330,7 +368,7 @@ EOF;
                     $url = 'madecache/varnish/messages';
                     break;
             }
-            $this->_callVarnish('/', 'BAN', array('X-Ban-String: req.url ~ ' . $url . ' && req.http.X-Session-UUID == ' . $sessionId));
+            $this->callVarnish('/', 'BAN', array('X-Ban-String: req.url ~ ' . $url . ' && req.http.X-Session-UUID == ' . $sessionId));
         }
     }
 
