@@ -86,6 +86,7 @@ The default modifiers are:
 * `ssl`: SSL or no SSL, typically for blocks that include links
 * `blocktype`: Custom built in modifier that uses different methods for different type of core blocks. See [Model/Modifier/Blocktype](https://github.com/madepeople/Made_Cache/tree/master/src/code/Cache/Model/Modifier/Blocktype)
 * `request`: Use the request and its parameters
+* `session`: Use the session ID
 
 Modifiers are also a nice way to cache differently depending on layout handles and so on.
 
