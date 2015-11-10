@@ -249,7 +249,7 @@ EOF;
             'type' => $type,
             'headers' => $headers
         );
-        return true;
+        return array();
     }
 
     /**
