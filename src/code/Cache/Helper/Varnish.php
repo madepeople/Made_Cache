@@ -74,8 +74,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
      */
     public function shouldUse()
     {
-        return Mage::app()->useCache('varnish') && $this->isInFront()
-            && $this->getCallVarnish();
+        return Mage::app()->useCache('varnish') && $this->isInFront();
     }
 
     /**
