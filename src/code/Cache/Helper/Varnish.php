@@ -235,6 +235,9 @@ EOF;
      */
     public function callVarnish($urls, $type = 'PURGE', $headers = array())
     {
+        if (!$this->getCallVarnish()) {
+            return array();
+        }
         $urls = (array)$urls;
         asort($urls);
         asort($headers);
