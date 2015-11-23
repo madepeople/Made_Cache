@@ -387,6 +387,18 @@
             </resources>
         </acl>
     </adminhtml>
+    <crontab>
+        <jobs>
+            <reinitialize_config_cache>
+                <schedule>
+                    <cron_expr>* * * * *</cron_expr>
+                </schedule>
+                <run>
+                    <model>cache/observer::reinitializeConfigCache</model>
+                </run>
+            </reinitialize_config_cache>>
+        </jobs>
+    </crontab>
     <default>
         <cache>
             <general>

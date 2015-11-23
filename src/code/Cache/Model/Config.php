@@ -16,8 +16,14 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
 {
 
     /**
-     * Reinitialize configuration. Make sure we don't end up here in case the
-     * config is already being regenerated
+     * Used to track which process is allowed to save cache.
+     */
+    const SAVE_KEY = 'cachegen';
+
+    /**
+     * Reinitialize configuration. Instead of doing the actual reinitialization
+     * we mark the cache as invalidated and set a timestamp that is later
+     * matched with a cron scheduled config cache regenerator timestamp.
      *
      * @param   array $options
      * @return  Mage_Core_Model_Config
@@ -32,14 +38,34 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
             return parent::reinit($options);
         }
 
-        $options = $this->getLockingOptions();
+        if (in_array(self::SAVE_KEY, $options)) {
+            // Mark the config cache as valid before we lock to prevent an
+            // invalidate-regenerate race condition
+            $cache = Mage::app()->getCacheInstance();
+            $types = $cache->load(Mage_Core_Model_Cache::INVALIDATED_TYPES);
+            if ($types) {
+                $types = unserialize($types);
+                if (isset($types[strtolower(self::CACHE_TAG)])) {
+                    unset($types[strtolower(self::CACHE_TAG)]);
+                }
+                $cache->save(serialize($types), Mage_Core_Model_Cache::INVALIDATED_TYPES);
+            }
 
-        if ($backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
-            $this->_allowCacheForInit = false;
-            $this->_useCache = false;
-            $options['lock_acquired'] = true;
-            $this->init($options);
-            $backend->releaseLock($options['lock_name'], $options['token']);
+            // If we got called by our observer, pass it on with a single
+            // instance lock.
+            $options = $this->getLockingOptions();
+            if ($backend->acquireLock($options['lock_name'], $options['token'], $options['lock_timeout'])) {
+                $this->_allowCacheForInit = false;
+                $this->_useCache = false;
+                $options['lock_acquired'] = true;
+                $this->init($options);
+                $backend->releaseLock($options['lock_name'], $options['token']);
+            }
+        } else {
+            // Instead of reinitializing the cache, simply mark the config
+            // cache as invalidated.
+            Mage::app()->getCacheInstance()
+                ->invalidateType(strtolower(self::CACHE_TAG));
         }
 
         return $this;
@@ -104,6 +130,22 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
         }
 
         return $this;
+    }
+
+    /**
+     * Remove configuration cache. If the observer is saving the cache we
+     * actually don't want to remove it, just replace it. Removal of the cache
+     * is done from the cache management screen.
+     *
+     * @return Mage_Core_Model_Config
+     */
+    public function removeCache()
+    {
+        if (Mage::registry(self::SAVE_KEY)) {
+            return $this;
+        }
+        Mage::app()->cleanCache(array(self::CACHE_TAG));
+        return parent::removeCache();
     }
 
     /**

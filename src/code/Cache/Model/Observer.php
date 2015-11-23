@@ -201,4 +201,23 @@ class Made_Cache_Model_Observer
         }
         Mage::app()->cleanCache($tags);
     }
+
+    /**
+     * Reinitialize the config cache, runs from cron
+     *
+     * @return void
+     */
+    public function reinitializeConfigCache($observer)
+    {
+        if (in_array(
+            strtolower(Mage_Core_Model_Config::CACHE_TAG),
+            array_keys(Mage::app()->getCacheInstance()->getInvalidatedTypes()))) {
+
+            // We need this registry key to allow saving of cache.
+            Mage::register(Made_Cache_Model_Config::SAVE_KEY, true);
+
+            // Then we pass the same key to reinit the cache.
+            Mage::getConfig()->reinit(array(Made_Cache_Model_Config::SAVE_KEY));
+        }
+    }
 }
