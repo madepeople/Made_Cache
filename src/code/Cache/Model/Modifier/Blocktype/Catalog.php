@@ -32,26 +32,33 @@ class Made_Cache_Model_Modifier_Blocktype_Catalog
             return;
         }
 
-        // Set cache tags
-        $tags = array(Mage_Catalog_Model_Product::CACHE_TAG . '_'
-            . $block->getProduct()->getId());
-        $block->setData('cache_tags', $tags);
-
         // Set cache keys
         $keys = $block->getCacheKeys();
 
-        $_taxCalculator = Mage::getModel('tax/calculation');
-        $_customer = Mage::getSingleton('customer/session')->getCustomer();
-        $_product = $block->getProduct();
-
+        $customer = Mage::getSingleton('customer/session')->getCustomer();
         $keys = array_merge($keys, array(
-            $_product->getId(),
-            $_customer->getGroupId(),
-            $_taxCalculator->getRate(
-                $_taxCalculator->getRateRequest()
-                    ->setProductClassId($_product->getTaxClassId())
-            )
+            $customer->getGroupId(),
         ));
+
+        $product = $block->getProduct();
+        if ($product) {
+            $tags = array(Mage_Catalog_Model_Product::CACHE_TAG . '_'
+                . $block->getProduct()->getId());
+
+            $taxCalculator = Mage::getModel('tax/calculation');
+            $product = $block->getProduct();
+            $keys = array_merge($keys, array(
+                $product->getId(),
+                $taxCalculator->getRate(
+                    $taxCalculator->getRateRequest()
+                        ->setProductClassId($product->getTaxClassId())
+                )
+            ));
+        } else {
+            $tags = array(Mage_Catalog_Model_Product::CACHE_TAG);
+        }
+
+        $block->setData('cache_tags', $tags);
         $block->setData('cache_keys', $keys);
     }
 
@@ -105,31 +112,31 @@ class Made_Cache_Model_Modifier_Blocktype_Catalog
             $this->_getCategoryIdForProductList($block);
 
         // The toolbar needs to apply sort order etc
-        $_toolbar = $block->getToolbarBlock();
+        $toolbar = $block->getToolbarBlock();
         $productCollection = $block->getLoadedProductCollection();
 
         /**
          * @see Mage_Catalog_Block_Product_List_Toolbar::getCurrentOrder
          */
         if ($orders = $block->getAvailableOrders()) {
-            $_toolbar->setAvailableOrders($orders);
+            $toolbar->setAvailableOrders($orders);
         }
         if ($sort = $block->getSortBy()) {
-            $_toolbar->setDefaultOrder($sort);
+            $toolbar->setDefaultOrder($sort);
         }
         if ($dir = $block->getDefaultDirection()) {
-            $_toolbar->setDefaultDirection($dir);
+            $toolbar->setDefaultDirection($dir);
         }
         if ($modes = $block->getModes()) {
-            $_toolbar->setModes($modes);
+            $toolbar->setModes($modes);
         }
 
-        $_toolbar->setCollection($productCollection);
+        $toolbar->setCollection($productCollection);
 
         $productIds = array();
-        foreach ($productCollection as $_product) {
-            $tags[] = Mage_Catalog_Model_Product::CACHE_TAG."_".$_product->getId();
-            $productIds[] = $_product->getId();
+        foreach ($productCollection as $product) {
+            $tags[] = Mage_Catalog_Model_Product::CACHE_TAG."_".$product->getId();
+            $productIds[] = $product->getId();
         }
 
         if (!empty($productIds)) {
@@ -144,20 +151,20 @@ class Made_Cache_Model_Modifier_Blocktype_Catalog
         // Set cache key
         $keys = $block->getCacheKeys();
 
-        $_taxRateRequest = Mage::getModel('tax/calculation')->getRateRequest();
-        $_categoryId = $this->_getCategoryIdForProductList($block);
+        $taxRateRequest = Mage::getModel('tax/calculation')->getRateRequest();
+        $categoryId = $this->_getCategoryIdForProductList($block);
 
         $keys = array_merge($keys, array(
-            $_categoryId,
-            $_toolbar->getCurrentOrder(),
-            $_toolbar->getCurrentDirection(),
-            $_toolbar->getCurrentMode(),
-            $_toolbar->getCurrentPage(),
-            $_toolbar->getLimit(),
-            $_taxRateRequest->getCountryId(),
-            $_taxRateRequest->getRegionId(),
-            $_taxRateRequest->getPostcode(),
-            $_taxRateRequest->getCustomerClassId(),
+            $categoryId,
+            $toolbar->getCurrentOrder(),
+            $toolbar->getCurrentDirection(),
+            $toolbar->getCurrentMode(),
+            $toolbar->getCurrentPage(),
+            $toolbar->getLimit(),
+            $taxRateRequest->getCountryId(),
+            $taxRateRequest->getRegionId(),
+            $taxRateRequest->getPostcode(),
+            $taxRateRequest->getCustomerClassId(),
             Mage::registry('current_tag')
         ));
         $block->setData('cache_keys', $keys);
