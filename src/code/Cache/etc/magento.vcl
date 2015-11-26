@@ -178,6 +178,9 @@ sub vcl_fetch {
             unset beresp.http.Set-Cookie;
         }
 
+        # Allow us to ban on object URL
+        set beresp.http.url = req.url;
+
         # Cache (if positive TTL)
         return (deliver);
     }
@@ -195,6 +198,7 @@ sub vcl_deliver {
     unset resp.http.X-Made-Cache-Tags-1;
     unset resp.http.X-Made-Cache-Tags-2;
     unset resp.http.X-Made-Cache-Tags-3;
+    unset resp.http.url;
 
     if (req.http.tempCookie) {
         # Version of https://www.varnish-cache.org/trac/wiki/VCLExampleLongerCaching

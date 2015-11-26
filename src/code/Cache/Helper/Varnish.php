@@ -164,7 +164,7 @@ EOF;
         $urls = (array)$urls;
         $status = array();
         foreach ($urls as $url) {
-            $header = 'X-Ban-String: req.url ~ ' . $url;
+            $header = 'X-Ban-String: obj.http.url ~ ' . $url;
             $status = array_merge($this->callVarnish('/', 'BAN', array($header)), $status);
         }
         return $status;
@@ -370,7 +370,7 @@ EOF;
                     $url = 'madecache/varnish/messages';
                     break;
             }
-            $this->callVarnish('/', 'BAN', array('X-Ban-String: req.url ~ ' . $url . ' && req.http.X-Session-UUID == ' . $sessionId));
+            $this->callVarnish('/', 'BAN', array('X-Ban-String: obj.http.url ~ ' . $url . ' && req.http.X-Session-UUID == ' . $sessionId));
         }
     }
 
