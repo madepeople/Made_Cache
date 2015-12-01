@@ -370,7 +370,7 @@ EOF;
                     $url = 'madecache/varnish/messages';
                     break;
             }
-            $this->callVarnish('/', 'BAN', array('X-Ban-String: obj.http.url ~ ' . $url . ' && req.http.X-Session-UUID == ' . $sessionId));
+            $this->callVarnish('/', 'BAN', array('X-Ban-String: obj.http.url ~ ' . $url . ' && obj.http.X-Session-UUID == ' . $sessionId));
         }
     }
 

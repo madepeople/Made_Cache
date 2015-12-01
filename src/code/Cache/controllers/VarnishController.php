@@ -62,6 +62,9 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
             $cacheModifiers = Mage::helper('cache')
                 ->getBlockModifiers($block);
             $block->setCacheModifiers(join(' ', $cacheModifiers));
+
+            $sessionId = Mage::getSingleton('core/session')->getSessionId();
+            $this->getResponse()->setHeader('X-Session-UUID', $sessionId);
             $this->getResponse()->setBody($block->toHtml());
         }
     }
@@ -96,6 +99,8 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
             return;
         }
 
+        $sessionId = Mage::getSingleton('core/session')->getSessionId();
+        $this->getResponse()->setHeader('X-Session-UUID', $sessionId);
         $this->getResponse()
             ->setBody($messagesBlock->toHtml());
     }
