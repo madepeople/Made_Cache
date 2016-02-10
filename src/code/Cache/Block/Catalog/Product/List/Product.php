@@ -11,6 +11,7 @@
 class Made_Cache_Block_Catalog_Product_List_Product
     extends Made_Cache_Block_Catalog_Product_List
 {
+
     /**
      * Only clear on the product itself
      *

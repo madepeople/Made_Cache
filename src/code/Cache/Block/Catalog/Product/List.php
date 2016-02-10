@@ -12,6 +12,19 @@ class Made_Cache_Block_Catalog_Product_List extends Mage_Catalog_Block_Product_L
     const DEFAULT_PRODUCT_TEMPLATE = 'catalog/product/list/product.phtml';
 
     /**
+     * Fixes a core bug that likes to believe a category object is an integer
+     *
+     * @param $categoryId
+     */
+    public function setCategoryId($categoryId)
+    {
+        if (is_object($categoryId)) {
+            $categoryId = $categoryId->getId();
+        }
+        return parent::setCategoryId($categoryId);
+    }
+
+    /**
      * Return the default product template unless specified differently
      *
      * @return mixed
