@@ -281,19 +281,19 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if (!empty($tags)) {
             $numberOfTags = count($tags);
 
-            $existsCalls = '';
+            $pipe = $client->pipeline();
             foreach ($tags as $tag) {
-                $tag = $this->_options['prefix'] . $tag;
-                $existsCalls .= "existing_tags = existing_tags + redis.call('EXISTS', '$tag')\n";
+                $pipe->exists($tag);
             }
 
-            $script = "
-                local existing_tags = 0
-                $existsCalls
-                return existing_tags
-            ";
+            $result = $pipe->exec();
 
-            $existingTags = $client->eval($script, array(), 0);
+            $existingTags = 0;
+            foreach ($result as $row) {
+                if ($row === true) {
+                    $existingTags++;
+                }
+            }
 
             if ($numberOfTags !== $existingTags) {
                 $this->remove($id);
