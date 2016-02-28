@@ -131,6 +131,12 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
+        // Don't clear the messages cache inside our own requests, it just
+        // takes cpu and fills the ban list
+        if (Mage::app()->getRequest()->getModuleName() === 'madecache') {
+            return;
+        }
+
         if (Mage::helper('cache')->responseHasMessages()) {
             Mage::helper('cache/varnish')
                 ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_MESSAGES);

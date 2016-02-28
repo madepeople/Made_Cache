@@ -17,7 +17,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const USER_CACHE_TYPE_MESSAGES = 'messages';
 
     const HTTP_HEADER_MAX_SIZE = 8192;
-    const HTTP_TAG_HEADER_LIMIT = 3;
+    const HTTP_TAG_HEADER_LIMIT = 1;
     const HTTP_TAG_PREFIX = 'X-Made-Cache-Tags';
 
     protected $_callVarnish = true;
@@ -180,7 +180,7 @@ EOF;
         // Ignore the quote tag because it's cleared regardless via the
         // X-Session-UUID
         $ignoreTagPatterns = array(
-            '/^quote$/',
+            '/^quote/',
         );
 
         $tags = (array)$tags;

@@ -95,12 +95,13 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
             }
         }
 
+        $sessionId = Mage::getSingleton('core/session')->getSessionId();
+        $this->getResponse()->setHeader('X-Session-UUID', $sessionId);
+
         if (!$messagesBlock->getMessageCollection()->count()) {
             return;
         }
 
-        $sessionId = Mage::getSingleton('core/session')->getSessionId();
-        $this->getResponse()->setHeader('X-Session-UUID', $sessionId);
         $this->getResponse()
             ->setBody($messagesBlock->toHtml());
     }
