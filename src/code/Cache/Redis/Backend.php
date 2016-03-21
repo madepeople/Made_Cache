@@ -24,7 +24,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         'cache_loaded_data' => false,
     );
     protected $_metadataPrefix = 'metadata_';
-    protected $_defaultExpiry = 259200; // Expire a key after a month, regardless
+    protected $_defaultExpiry = 259200; // Expire a key after 3 days
 
     /**
      * If enabled in backend_options, cache already loaded data in-memory to
