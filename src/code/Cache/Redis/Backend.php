@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Experimental redis cache that keeps an expiry on every key to make it
+ * Redis cache implementation that keeps an expiry on every key to make it
  * easier to calculate larger amounts of visitors when caching carts, vs the
  * amount of memory.
  *
