@@ -26,6 +26,8 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     protected $_metadataPrefix = 'metadata_';
     protected $_defaultExpiry = 259200; // Expire a key after 3 days
 
+    const XML_BASE_PATH = 'global/cache/backend_options';
+
     /**
      * If enabled in backend_options, cache already loaded data in-memory to
      * offload the redis instance
@@ -33,6 +35,21 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      * @var array
      */
     protected $_loadedData = array();
+
+    /**
+     * Set up possible variable overrides from local XML definitions
+     */
+    public function __construct()
+    {
+        foreach (array_keys($this->_options) as $key) {
+            $xmlPath = self::XML_BASE_PATH . '/' . $key;
+            $value = Mage::getConfig()->getNode($xmlPath);
+            if ($value !== false) {
+                $value = trim((string)$value);
+                $this->_options[$key] = $value;
+            }
+        }
+    }
 
     /**
      * The idea with not returning the client is to bypass caching in case of
