@@ -35,7 +35,7 @@ class Made_Cache_VarnishController extends Mage_Core_Controller_Front_Action
 
         $layoutHandles = explode(',', base64_decode($this->getRequest()->getParam('layout')));
         $blockName = base64_decode($this->getRequest()->getParam('block'));
-        $misc = unserialize(base64_decode($this->getRequest()->getParam('misc')));
+        $misc = json_decode(base64_decode($this->getRequest()->getParam('misc')), true);
 
         if (is_array($misc)) {
             if (isset($misc['product'])) {

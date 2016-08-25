@@ -110,7 +110,7 @@ class Made_Cache_Model_VarnishObserver
                 . '/block/' . base64_encode($block->getNameInLayout())
                 . '/hash/' . $hash
                 . '/layout/' . $layout
-                . '/misc/' . base64_encode(serialize($misc));
+                . '/misc/' . base64_encode(json_encode($misc));
 
             $html = Mage::helper('cache/varnish')->getEsiTag($esiPath);
             $transport = $observer->getEvent()->getTransport();
