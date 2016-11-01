@@ -23,6 +23,15 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     protected $_callVarnish = true;
     
     protected static $_calls = array();
+    protected static $_servers = null;
+
+    /**
+     * Initializes the server list upon instantiation
+     */
+    public function __construct()
+    {
+        $this->initServers();
+    }
 
     /**
      * Perform the real varnish calls on object destruction
@@ -122,11 +131,11 @@ EOF;
     }
 
     /**
-     * Returns an array of defined Varnish servers
+     * Initializes the varnish server list
      *
      * @return array
      */
-    public function getServers()
+    public function initServers()
     {
         $serversConfig = Mage::getStoreConfig('cache/varnish/servers');
         $serversArray = preg_split('/[\r\n]+/', $serversConfig, null, PREG_SPLIT_NO_EMPTY);
@@ -150,8 +159,27 @@ EOF;
             'result' => $result
         ]);
         $servers = $result->getServers();
+        $this->setServers($servers);
+    }
 
-        return $servers;
+    /**
+     * Returns an array of varnish servers
+     *
+     * @return array
+     */
+    public function getServers()
+    {
+        return self::$_servers;
+    }
+
+    /**
+     * Manually set the varnish server list
+     *
+     * @param array $servers
+     */
+    public function setServers(array $servers)
+    {
+        self::$_servers = $servers;
     }
 
     /**
