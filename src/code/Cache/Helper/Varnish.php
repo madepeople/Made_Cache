@@ -146,7 +146,7 @@ EOF;
         $result = new Varien_Object([
             'servers' => $servers
         ]);
-        Mage:dispatchEvent('made_cache_get_varnish_servers', [
+        Mage::dispatchEvent('made_cache_get_varnish_servers', [
             'result' => $result
         ]);
         $servers = $result->getServers();
