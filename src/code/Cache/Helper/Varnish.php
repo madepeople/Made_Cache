@@ -143,6 +143,14 @@ EOF;
             $servers[] = $server;
         }
 
+        $result = new Varien_Object([
+            'servers' => $servers
+        ]);
+        Mage:dispatchEvent('made_cache_get_varnish_servers', [
+            'result' => $result
+        ]);
+        $servers = $result->getServers();
+
         return $servers;
     }
 
@@ -267,6 +275,10 @@ EOF;
     protected function _callVarnish($urls, $type = 'PURGE', $headers = array())
     {
         $servers = $this->getServers();
+        if (empty($servers)) {
+            // De nada
+            return [];
+        }
 
         // Init curl handler
         $curlHandlers = array(); // keep references for clean up
