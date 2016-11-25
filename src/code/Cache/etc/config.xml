@@ -46,6 +46,11 @@
             <core>
                 <rewrite>
                     <layout>Made_Cache_Model_Layout</layout>
+
+                    <!-- If you use read/slave, this is needed to minimize
+                         slave lag cache inconsistency. It's commented out
+                         because many stores already override the store model -->
+                    <!--<store>Made_Cache_Model_Core_Store</store>-->
                 </rewrite>
             </core>
             <!-- Uncomment the below if you want to use the bundled redis
