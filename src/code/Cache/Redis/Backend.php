@@ -172,6 +172,28 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     }
 
     /**
+     * Set a custom write client
+     *
+     * @return null|Redis
+     */
+    public function setWriteClient(Redis $client)
+    {
+        $this->_writeClient = $client;
+        return $this;
+    }
+
+    /**
+     * Set a custom read client
+     *
+     * @return null|Redis
+     */
+    public function setReadClient(Redis $client)
+    {
+        $this->_readClient = $client;
+        return $this;
+    }
+
+    /**
      * SSCAN away to find all keys in a set. We use sets because grouping
      * within the same prefix (means we can have different prefixes for normal
      * cache and the full page cache)
