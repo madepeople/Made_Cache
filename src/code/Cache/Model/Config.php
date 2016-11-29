@@ -162,6 +162,10 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
             ->getFrontend()
             ->getBackend();
 
+        if (get_class($backend) !== 'Made_Cache_Redis_Backend') {
+            return parent::_loadCache($id);
+        }
+
         $readClient = $backend->getReadClient();
         $writeClient = $backend->getWriteClient();
         $backend->setReadClient($writeClient);

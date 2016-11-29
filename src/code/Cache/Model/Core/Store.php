@@ -26,6 +26,10 @@ class Made_Cache_Model_Core_Store extends Mage_Core_Model_Store
                     $backend = Mage::app()->getCacheInstance()
                         ->getFrontend()
                         ->getBackend();
+                    
+                    if (get_class($backend) !== 'Made_Cache_Redis_Backend') {
+                        return parent::initConfigCache();
+                    }
 
                     $readClient = $backend->getReadClient();
                     $writeClient = $backend->getWriteClient();
