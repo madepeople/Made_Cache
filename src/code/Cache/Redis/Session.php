@@ -97,8 +97,8 @@ class Made_Cache_Redis_Session
             return false;
         }
         $client = $this->_getClient();
-        $result = $client->del($id);
-        return empty($result);
+        $deleteCount = $client->del($id);
+        return $deleteCount > 0;
     }
 
     /**
