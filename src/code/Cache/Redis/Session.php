@@ -187,7 +187,12 @@ class Made_Cache_Redis_Session
             // request
             return true;
         }
-        while (($result = $this->_multiWrite($id, $data)) === false);
+
+        $retryCount = 0;
+        while (($result = $this->_multiWrite($id, $data)) === false && $retryCount < 10) {
+            $retryCount++;
+        }
+
         return true;
     }
 }
