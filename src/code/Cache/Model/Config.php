@@ -148,6 +148,33 @@ class Made_Cache_Model_Config extends Mage_Core_Model_Config
         return parent::removeCache();
     }
 
+
+    /**
+     * Load cached data by identifier, we force the backend to load using the
+     * write adapter to get rid of slave lag cache corruption
+     *
+     * @param   string $id
+     * @return  string
+     */
+    protected function _loadCache($id)
+    {
+        $backend = Mage::app()->getCacheInstance()
+            ->getFrontend()
+            ->getBackend();
+
+        if (get_class($backend) !== 'Made_Cache_Redis_Backend') {
+            return parent::_loadCache($id);
+        }
+
+        $readClient = $backend->getReadClient();
+        $writeClient = $backend->getWriteClient();
+        $backend->setReadClient($writeClient);
+        $data = Mage::app()->loadCache($id);
+        $backend->setReadClient($readClient);
+
+        return $data;
+    }
+
     /**
      * Parameters used for locking the config cache generation
      *

@@ -13,14 +13,18 @@
 class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     implements Zend_Cache_Backend_ExtendedInterface
 {
-    private $_client;
+    private $_writeClient;
+    private $_readClient;
 
     protected $_options = array(
-        'hostname' => '127.0.0.1',
-        'port' => 6379,
-        'timeout' => '1',
+        'write' => [
+            'hostname' => '127.0.0.1',
+            'port' => 6379,
+            'timeout' => '1',
+            'database' => 0,
+        ],
+        'read' => [],
         'prefix' => 'mc:',
-        'database' => 0,
         'cache_loaded_data' => false,
     );
     protected $_metadataPrefix = 'metadata_';
@@ -43,44 +47,150 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         foreach (array_keys($this->_options) as $key) {
             $xmlPath = self::XML_BASE_PATH . '/' . $key;
-            $value = Mage::getConfig()->getNode($xmlPath);
-            if ($value !== false) {
-                $value = trim((string)$value);
-                $this->_options[$key] = $value;
+            switch ($key) {
+                case 'write':
+                case 'read':
+                    $value = Mage::getConfig()->getNode($xmlPath);
+                    if (empty($value)) {
+                        if ($key === 'read') {
+                            // Is copied as "write" further down
+                            continue;
+                        }
+
+                        // Fall back on old style settings
+                        foreach (array_keys($this->_options[$key]) as $writeKey) {
+                            $xmlPath = self::XML_BASE_PATH . '/' . $writeKey;
+                            $value = Mage::getConfig()->getNode($xmlPath);
+                            if ($value !== false) {
+                                $value = trim((string)$value);
+                                $this->_options[$key][$writeKey] = $value;
+                            }
+                        }
+                    } else {
+                        // Fall back on old style settings
+                        foreach (array_keys($this->_options['write']) as $optionsKey) {
+                            $xmlPath = self::XML_BASE_PATH . '/' . $key . '/' . $optionsKey;
+                            $value = Mage::getConfig()->getNode($xmlPath);
+                            if ($value !== false) {
+                                $value = trim((string)$value);
+                                $this->_options[$key][$optionsKey] = $value;
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    $value = Mage::getConfig()->getNode($xmlPath);
+                    if ($value !== false) {
+                        $value = trim((string)$value);
+                        $this->_options[$key] = $value;
+                    }
+                    break;
             }
         }
     }
 
     /**
-     * The idea with not returning the client is to bypass caching in case of
-     * an error, instead of breaking the world
+     * Returns a client depending on the supplied config
      *
      * @return null|Redis
      */
-    private function _getClient()
+    private function _getClient($config)
     {
-        if ($this->_client === null) {
-            $this->_client = new Redis();
-            $this->_client->connect(
-                $this->_options['hostname'],
-                $this->_options['port'],
-                $this->_options['timeout']
-            );
-            $this->_client->select((int)$this->_options['database']);
-            $this->_client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);
-        }
-        return $this->_client;
+        $client = new Redis();
+        $client->connect(
+            $config['hostname'],
+            $config['port'],
+            $config['timeout']
+        );
+        $client->select((int)$config['database']);
+        $client->setOption(Redis::OPT_PREFIX, $this->_options['prefix']);
+        return $client;
     }
 
     /**
-     * Expose the client so we can do custom magic directly Redis
+     * Get client used for Redis writes
      *
-     * @see Made_Cache_Helper_Varnish::saveTagsUrl
      * @return null|Redis
      */
-    public function getClient()
+    private function _getWriteClient()
     {
-        return $this->_getClient();
+        if ($this->_writeClient === null) {
+            $config = $this->_options['write'];
+            $client = $this->_getClient($config);
+            $this->_writeClient = $client;
+        }
+
+        return $this->_writeClient;
+    }
+
+    /**
+     * Get client used for Redis reads
+     *
+     * @return null|Redis
+     */
+    private function _getReadClient()
+    {
+        $config = $this->_options['read'];
+        if (empty($config)) {
+            // Use the write client for everything if read isn't set
+            return $this->_getWriteClient();
+        }
+
+        if ($this->_readClient === null) {
+            $writeConfig = $this->_options['write'];
+            $config['database'] = $writeConfig['database'];
+            foreach ($this->_options['write'] as $key => $val) {
+                if (!isset($config[$key])) {
+                    $config[$key] = $val;
+                }
+            }
+            $client = $this->_getClient($config);
+            $this->_readClient = $client;
+        }
+
+        return $this->_readClient;
+    }
+
+    /**
+     * Expose the write client so we can do custom magic directly Redis
+     *
+     * @return null|Redis
+     */
+    public function getWriteClient()
+    {
+        return $this->_getWriteClient();
+    }
+
+    /**
+     * Expose the read client so we can do custom magic directly Redis
+     *
+     * @return null|Redis
+     */
+    public function getReadClient()
+    {
+        return $this->_getReadClient();
+    }
+
+    /**
+     * Set a custom write client
+     *
+     * @return null|Redis
+     */
+    public function setWriteClient(Redis $client)
+    {
+        $this->_writeClient = $client;
+        return $this;
+    }
+
+    /**
+     * Set a custom read client
+     *
+     * @return null|Redis
+     */
+    public function setReadClient(Redis $client)
+    {
+        $this->_readClient = $client;
+        return $this;
     }
 
     /**
@@ -204,7 +314,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function getMetadatas($id)
     {
-        $client = $this->_getClient();
+        $client = $this->_getReadClient();
         $metadataKey = $this->_metadataPrefix . $id;
         $result = $client->get($metadataKey);
         if (!empty($result)) {
@@ -226,7 +336,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function touch($id, $extraLifetime)
     {
-        $client = $this->_getClient();
+        $client = $this->_getWriteClient();
         $ttl = $client->ttl($id);
         $lifetime = $ttl + $extraLifetime;
         $result = $client->expire($id, $lifetime);
@@ -284,7 +394,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             return false;
         }
 
-        $client = $this->_getClient();
+        $client = $this->_getReadClient();
         $data = $client->get($id);
         if ($data === null) {
             return false;
@@ -332,7 +442,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function test($id)
     {
-        $client = $this->_getClient();
+        $client = $this->_getReadClient();
         if ($client->exists($id)) {
             $metadataKey = $this->_metadataPrefix . $id;
             $result = $client->get($metadataKey);
@@ -380,7 +490,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function save($data, $id, $tags = array(), $specificLifetime = false)
     {
-        $client = $this->_getClient();
+        $client = $this->_getWriteClient();
         $lifetime = $this->getLifetime($specificLifetime);
         if ($lifetime === null) {
             $lifetime = $this->_defaultExpiry;
@@ -416,7 +526,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function remove($id)
     {
-        $client = $this->_getClient();
+        $client = $this->_getWriteClient();
         $client->del($id);
         $client->del($this->_metadataPrefix . $id);
 
@@ -452,7 +562,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             $tags = array_unique($tags);
         }
 
-        $client = $this->_getClient();
+        $client = $this->_getWriteClient();
         $keys = null;
 
         switch ($mode) {
@@ -494,7 +604,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function acquireLock($lockName, $token, $timeout, &$counter = null)
     {
-        $client = $this->_getClient();
+        $client = $this->_getWriteClient();
         $result = $client->set($lockName, $token,
             array(
                 'nx',
@@ -516,7 +626,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
      */
     public function releaseLock($lockName, $token, &$counter = null)
     {
-        $client = $this->_getClient();
+        $client = $this->_getWriteClient();
 
         if ($counter !== null && $counter > 0) {
             $counter = $client->decr($lockName);
