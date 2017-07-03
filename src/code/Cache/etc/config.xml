@@ -414,6 +414,7 @@ cms]]>
                 </cache_routes>
                 <servers>127.0.0.1</servers>
                 <debug>0</debug>
+                <csrf_replacement>1</csrf_replacement>
             </varnish>
         </cache>
     </default>

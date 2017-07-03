@@ -267,6 +267,9 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
+        if (!Mage::getStoreConfig('cache/varnish/csrf_replacement')) {
+            return;
+        }
 
         if (Mage::registry('esi_action')) {
             // Don't do this for ESI actions as they need the correct key
@@ -298,6 +301,9 @@ class Made_Cache_Model_VarnishObserver
         if (!Mage::helper('cache/varnish')->shouldUse()) {
             return;
         }
+        if (!Mage::getStoreConfig('cache/varnish/csrf_replacement')) {
+            return;
+        }
 
         if (Mage::registry('esi_action')) {
             // Don't do this for ESI actions as they need the correct key
@@ -327,6 +333,10 @@ class Made_Cache_Model_VarnishObserver
      */
     public function resetFormKey(Varien_Event_Observer $observer)
     {
+        if (!Mage::getStoreConfig('cache/varnish/csrf_replacement')) {
+            return;
+        }
+
         $session = Mage::getSingleton('core/session');
         $realFormKey = $session->getData('_real_form_key');
         if (!empty($realFormKey)) {
@@ -344,6 +354,9 @@ class Made_Cache_Model_VarnishObserver
     public function replaceFormKeyPlaceholder(Varien_Event_Observer $observer)
     {
         if (!Mage::helper('cache/varnish')->shouldUse()) {
+            return;
+        }
+        if (!Mage::getStoreConfig('cache/varnish/csrf_replacement')) {
             return;
         }
 
