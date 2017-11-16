@@ -20,6 +20,9 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const HTTP_TAG_HEADER_LIMIT = 1;
     const HTTP_TAG_PREFIX = 'X-Made-Cache-Tags';
 
+    const XML_PATH_TIMEOUT = 'cache/varnish/timeout';
+    const XML_PATH_CONNECTION_TIMEOUT = 'cache/varnish/connection_timeout';
+
     protected $_callVarnish = true;
     
     protected static $_calls = array();
@@ -303,6 +306,8 @@ EOF;
     protected function _callVarnish($urls, $type = 'PURGE', $headers = array())
     {
         $servers = $this->getServers();
+        $timeout = $this->getTimeout();
+        $connectionTimeout = $this->getConnectionTimeout();
         if (empty($servers)) {
             // De nada
             return [];
@@ -323,6 +328,14 @@ EOF;
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 
+                if ($timeout) {
+                    curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeout);
+                }
+
+                if ($connectionTimeout) {
+                    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, $connectionTimeout);
+                }
+
                 if (!empty($headers)) {
                     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 }
@@ -340,21 +353,69 @@ EOF;
 
         // Error handling and clean up
         $errors = array();
-        foreach ($curlHandlers as $ch) {
-            $info = curl_getinfo($ch);
 
-            if (curl_errno($ch)) {
-                $errors[] = "Cannot purge url {$info['url']} due to error" . curl_error($ch);
-            } else if ($info['http_code'] != 200 && $info['http_code'] != 404) {
-                $errors[] = "Cannot purge url {$info['url']}, http code: {$info['http_code']}";
+        // For curl multi, the errors are fetched only via curl_multi_info_read, we need to add error info into raw error
+        while ($done = curl_multi_info_read($mh)) {
+            $id = (int)$done['handle'];
+
+            if ($done['result'] !== CURLM_OK) {
+                $errors[$id] = curl_getinfo($done['handle']);
+                $errors[$id]['errno'] = $done['result'];
+                $errors[$id]['error'] = curl_strerror($done['result']);
             }
+        }
 
+        foreach ($curlHandlers as $ch) {
             curl_multi_remove_handle($mh, $ch);
             curl_close($ch);
         }
         curl_multi_close($mh);
 
+        $errors = $this->parseErrors($errors);
+        if ($errors) {
+            Mage::log($errors, null, 'made-cache.log');
+        }
+
         return $errors;
+    }
+
+    /**
+     * Parsing raw errors and flattening them
+     *
+     * @param $errors
+     * @return array
+     */
+    public function parseErrors($errors)
+    {
+        $parsedErrors = [];
+        if ($errors) {
+            foreach ($errors as $error) {
+                $errorString = "Cannot purge url {$error['url']} due to curl error {$error['errno']} - {$error['error']}";
+                if ($error['http_code'] != 200 && $error['http_code'] != 404) {
+                    $errorString = $errorString . ", http code: {$error['http_code']}";
+                }
+                $parsedErrors[] = $errorString;
+            }
+        }
+        return $parsedErrors;
+    }
+
+    /**
+     * Getting config value for curl timeout
+     *
+     * @return int
+     */
+    public function getTimeout() {
+        return (int)Mage::getStoreConfig(self::XML_PATH_TIMEOUT);
+    }
+
+    /**
+     * Getting config value for curl connection timeout
+     *
+     * @return int
+     */
+    public function getConnectionTimeout() {
+        return (int)Mage::getStoreConfig(self::XML_PATH_CONNECTION_TIMEOUT);
     }
 
     /**

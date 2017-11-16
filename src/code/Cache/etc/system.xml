@@ -98,6 +98,24 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </debug>
+                        <timeout>
+                            <label>Timeout</label>
+                            <comment>Timeout for curl calls in milliseconds</comment>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>4</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </timeout>
+                        <connection_timeout>
+                            <label>Connection timeout</label>
+                            <comment>Timeout for establishing curl connection in milliseconds</comment>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>5</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>0</show_in_website>
+                            <show_in_store>0</show_in_store>
+                        </connection_timeout>
                     </fields>
                 </varnish>
             </groups>
