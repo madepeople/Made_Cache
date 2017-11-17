@@ -21,7 +21,7 @@ class Made_Cache_Helper_Varnish extends Mage_Core_Helper_Abstract
     const HTTP_TAG_PREFIX = 'X-Made-Cache-Tags';
 
     protected $_callVarnish = true;
-    
+
     protected static $_calls = array();
     protected static $_servers = null;
 
@@ -261,10 +261,10 @@ EOF;
     }
 
     /**
-     * Instead of calling varnish directly we merge all calls into one and 
-     * do the real calls on destruct to prevent multiple purges of the same 
+     * Instead of calling varnish directly we merge all calls into one and
+     * do the real calls on destruct to prevent multiple purges of the same
      * URL within one request
-     * 
+     *
      * @param $urls
      * @param string $type
      * @param array $headers
@@ -291,6 +291,17 @@ EOF;
     }
 
     /**
+     * Returns the connetion timeout for Varnish calls
+     *
+     * @return int
+     */
+    protected function _getConnectionTimeout()
+    {
+        $timeout = (int)Mage::getStoreConfig('cache/varnish/connect_timeout_ms');
+        return $timeout;
+    }
+
+    /**
      * Send a message to all defined Varnish servers
      *
      * Uses code from magneto-varnish.
@@ -312,6 +323,8 @@ EOF;
         $curlHandlers = array(); // keep references for clean up
         $mh = curl_multi_init();
 
+        $connectionTimeout = $this->_getConnectionTimeout();
+
         foreach ($servers as $varnishServer) {
             foreach ($urls as $url) {
                 $varnishUrl = "http://" . $varnishServer . $url;
@@ -322,6 +335,7 @@ EOF;
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, $connectionTimeout);
 
                 if (!empty($headers)) {
                     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
