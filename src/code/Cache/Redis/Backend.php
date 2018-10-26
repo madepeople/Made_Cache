@@ -324,7 +324,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 return false;
             }
         }
-        return json_decode($result);
+        return json_decode($result, true);
     }
 
     /**
