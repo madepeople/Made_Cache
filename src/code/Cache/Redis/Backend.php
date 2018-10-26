@@ -228,7 +228,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     {
         $metadataKey = $this->_metadataPrefix . $id;
         $metadata['mtime'] = time();
-        $client->setex($metadataKey, $metadata['expire'], gzcompress(serialize($metadata), 6));
+        $client->setex($metadataKey, $metadata['expire'], gzcompress(json_encode($metadata), 6));
     }
 
     /**
@@ -324,7 +324,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
                 return false;
             }
         }
-        return unserialize($result);
+        return json_decode($result);
     }
 
     /**
@@ -456,7 +456,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if ($metadata === false) {
             return false;
         }
-        $metadata = unserialize($metadata);
+        $metadata = json_decode($metadata);
         if (!is_array($metadata) || empty($metadata['mtime'])) {
             return false;
         }
