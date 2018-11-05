@@ -456,7 +456,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         if ($metadata === false) {
             return false;
         }
-        $metadata = json_decode($metadata);
+        $metadata = json_decode($metadata, true);
         if (!is_array($metadata) || empty($metadata['mtime'])) {
             return false;
         }

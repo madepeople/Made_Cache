@@ -140,6 +140,23 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
     }
 
     /**
+     * Clear all messages stored in the session to prevent multiple prints of
+     * the same message
+     */
+    public function clearMessages()
+    {
+        foreach ($_SESSION as $key => $data) {
+            if (isset($data['messages'])
+                && $data['messages'] instanceof Mage_Core_Model_Message_Collection) {
+                $messages = $data['messages'];
+                if ($messages->count()) {
+                    $messages->clear();
+                }
+            }
+        }
+    }
+
+    /**
      * Get product IDs for related products (useful when generating cache tags)
      *
      * @param array $productIds
