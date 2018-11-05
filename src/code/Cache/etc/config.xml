@@ -421,6 +421,8 @@ cms]]>
                 <debug>0</debug>
                 <connect_timeout_ms>100</connect_timeout_ms>
                 <csrf_replacement>1</csrf_replacement>
+                <purge_quotes >1</purge_quotes>
+                <purge_user_cache>1</purge_user_cache>
             </varnish>
         </cache>
     </default>

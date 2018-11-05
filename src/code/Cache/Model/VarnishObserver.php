@@ -138,8 +138,12 @@ class Made_Cache_Model_VarnishObserver
         }
 
         if (Mage::helper('cache')->responseHasMessages()) {
-            Mage::helper('cache/varnish')
-                ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_MESSAGES);
+            if (!Mage::getStoreConfigFlag('cache/varnish/purge_user_cache')) {
+                Mage::helper('cache')->clearMessages();
+            } else {
+                Mage::helper('cache/varnish')
+                    ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_MESSAGES);
+            }
         }
     }
 
@@ -154,8 +158,10 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
-        Mage::helper('cache/varnish')
-            ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_ESI);
+        if (Mage::getStoreConfigFlag('cache/varnish/purge_user_cache')) {
+            Mage::helper('cache/varnish')
+                ->purgeUserCache(Made_Cache_Helper_Varnish::USER_CACHE_TYPE_ESI);
+        }
     }
 
     /**
@@ -202,8 +208,21 @@ class Made_Cache_Model_VarnishObserver
             return;
         }
 
-        $tags = (array)$observer->getEvent()->getTags();
-        $errors = $helper->banTags($tags);
+        $tagsToClear = $allTags = (array)$observer->getEvent()->getTags();
+        if (!Mage::getStoreConfigFlag('cache/varnish/purge_quotes')) {
+            $tagsToClear = [];
+            foreach ($allTags as $tag) {
+                if (!preg_match('#^QUOTE#i', $tag)) {
+                    $tagsToClear[] = $tag;
+                }
+            }
+        }
+
+        if (empty($tagsToClear)) {
+            return;
+        }
+
+        $errors = $helper->banTags($tagsToClear);
 
         // Varnish purge messages should only appear in the backend
         if (!empty($errors)) {
