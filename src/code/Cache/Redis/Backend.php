@@ -502,12 +502,16 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         $saveTags = array();
         foreach ($tags as $tag) {
             $tagCacheTimestamp = $client->get($tag);
+            $tagTimestampKey = "{$tag}_{$tagCacheTimestamp}";
             if (!$tagCacheTimestamp) {
                 $tagCacheTimestamp = $now;
-                $client->setex("{$tag}_{$tagCacheTimestamp}", $lifetime, 1);
+                $client->setex($tagTimestampKey, $lifetime, 1);
                 $client->setex($tag, $lifetime, $tagCacheTimestamp);
+            } else if ($client->exists($tagTimestampKey) === false) {
+                $ttl = $client->ttl($tag);
+                $client->setex($tagTimestampKey, $ttl, 1);
             }
-            $saveTags[] = "{$tag}_{$tagCacheTimestamp}";
+            $saveTags[] = $tagTimestampKey;
         }
 
         $this->_saveMetadata($client, $id, array(
@@ -527,8 +531,8 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
     public function remove($id)
     {
         $client = $this->_getWriteClient();
-        $client->del($id);
         $client->del($this->_metadataPrefix . $id);
+        $client->del($id);
 
         if ($this->_options['cache_loaded_data'] !== false) {
             if (isset($this->_loadedData[$id])) {
