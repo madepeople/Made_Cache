@@ -505,6 +505,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             $tagTimestampKey = "{$tag}_{$tagCacheTimestamp}";
             if (!$tagCacheTimestamp) {
                 $tagCacheTimestamp = $now;
+                $tagTimestampKey = "{$tag}_{$tagCacheTimestamp}";
                 $client->setex($tagTimestampKey, $lifetime, 1);
                 $client->setex($tag, $lifetime, $tagCacheTimestamp);
             } else if ($client->exists($tagTimestampKey) === false) {
