@@ -390,7 +390,7 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
         }
 
         $metadata = $this->getMetadatas($id);
-        if ($metadata === false) {
+        if ($metadata === false || $metadata === null) {
             return false;
         }
 
@@ -581,8 +581,8 @@ class Made_Cache_Redis_Backend extends Zend_Cache_Backend
             case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
                 foreach ($tags as $tag) {
                     $tagCacheTimestamp = $client->get($tag);
+                    $client->del($tag);
                     if ($tagCacheTimestamp) {
-                        $client->del($tag);
                         $client->del("{$tag}_{$tagCacheTimestamp}");
                     }
                 }
