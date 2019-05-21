@@ -112,8 +112,12 @@ class Made_Cache_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function responseHasMessages()
     {
-        $layout = Mage::app()->getFrontController()->getAction()
-            ->getLayout();
+        $frontController = Mage::app()->getFrontController();
+        if (!$frontController->hasAction()) {
+            return false;
+        }
+
+        $layout = $frontController->getAction()->getLayout();
 
         foreach (array('global_messages', 'messages') as $blockName) {
             if (($messagesBlock = $layout->getBlock($blockName)) !== false) {
