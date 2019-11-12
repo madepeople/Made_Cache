@@ -196,6 +196,9 @@ sub vcl_backend_response {
 
             # Don't cache expire headers, we maintain those differently
             unset beresp.http.expires;
+        } elsif (beresp.http.Content-Type ~ "application/json") {
+            set beresp.ttl = std.duration(beresp.http.X-Made-Cache-Ttl, 0s);
+            unset beresp.http.expires;
         } else {
             # TTL for static content
             set beresp.ttl = 1w;
